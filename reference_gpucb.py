@@ -36,9 +36,9 @@ class GPUCB(object):
     self.sample(self.X_grid[grid_idx])
     gp = GaussianProcessRegressor()
     gp.fit(self.X, self.T)
-    # predMu = np.copy(self.mu)
+    # prevMu = np.copy(self.mu)
     self.mu, self.sigma = gp.predict(self.X_grid, return_std=True)
-    # print(self.mu - predMu)
+    # print(self.mu - prevMu)
 
   def sample(self, x):
     t = self.environment.sample(x)
