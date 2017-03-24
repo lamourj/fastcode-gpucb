@@ -32,7 +32,7 @@ void learn(double* X_grid, int* X, double* T, int t, double* mu, double* sigma, 
     X[2 * t + 1] = maxJ;
 
     T[t] = function(X_grid[maxI * n + maxJ]);
-    // gp_regression(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
+    gp_regression(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
 }
 
 double kernel2(double* x, double* y)

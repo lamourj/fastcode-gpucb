@@ -13,18 +13,6 @@ void solve(gsl_matrix_view A, gsl_vector_view b, int n, gsl_permutation *p, gsl_
     gsl_linalg_LU_solve(&A.matrix, p, &b.vector, x);
 }
 
-void update_alpha() {
-
-}
-
-void update_f_star() {
-
-}
-
-void update_v() {
-
-}
-
 void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(double *, double *), double *mu,
                    double *sigma, int n) {
     int t_gp = t + 1;
