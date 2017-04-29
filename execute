@@ -1,0 +1,4 @@
+#!/bin/bash
+
+python reference_gpucb.py
+python tester.py

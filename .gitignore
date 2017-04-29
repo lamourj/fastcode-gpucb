@@ -10,6 +10,14 @@
 .idea/dictionaries
 cmake-build-debug/
 
+# The virtual environment
+bin/
+lib/
+pip-selfcheck.json
+pyvenv.cfg
+reference_output.txt
+sampler_output.txt
+
 # Sensitive or high-churn files:
 .idea/**/dataSources/
 .idea/**/dataSources.ids

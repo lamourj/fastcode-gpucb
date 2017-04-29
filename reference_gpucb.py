@@ -4,7 +4,6 @@ from matplotlib import pylab as plt
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 
-
 class GPUCB(object):
 
   def __init__(self, meshgrid, environment, beta=100.):
@@ -69,3 +68,5 @@ if __name__ == '__main__':
   for i in range(20):
     agent.learn()
     agent.plot()
+  np.savetxt("reference_output.txt", agent.mu.reshape(agent.meshgrid[0].shape), fmt='%10.5f', delimiter=',')
+  np.savetxt("sampler_output.txt", agent.environment.sample(agent.meshgrid), fmt='%10.5f', delimiter=',')
