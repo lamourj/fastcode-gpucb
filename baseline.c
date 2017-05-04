@@ -2,8 +2,18 @@
 #include "math.h"
 #include <stdio.h>
 #include <gsl/gsl_linalg.h>
+#include "stdio.h"
 
 void cholesky(gsl_matrix_view X, int n) {
+    /*
+     * These functions factorize the symmetric, positive-definite square matrix A into the
+     * Cholesky decomposition A = L L^T (or A = L L^H for the complex case). On input, the
+     * values from the diagonal and lower-triangular part of the matrix A are used (the
+     * upper triangular part is ignored). On output the diagonal and lower triangular part
+     * of the input matrix A contain the matrix L, while the upper triangular part is
+     * unmodified. If the matrix is not positive-definite then the decomposition will fail,
+     *  returning the error code GSL_EDOM.
+     */
     gsl_linalg_cholesky_decomp1(&X.matrix);
 }
 
@@ -13,7 +23,8 @@ void solve(gsl_matrix_view A, gsl_vector_view b, int n, gsl_permutation *p, gsl_
     gsl_linalg_LU_solve(&A.matrix, p, &b.vector, x);
 }
 
-void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(double *, double *), double *mu,
+void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(double *, double *, double *, double *),
+                   double *mu,
                    double *sigma, int n) {
     int t_gp = t + 1;
     // double L[t_gp * t_gp];
@@ -28,18 +39,39 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
             int x2 = X[2 * j];
             int y2 = X[2 * j + 1];
 
-            K[i * t_gp + j] = (*kernel)(&X_grid[x1 * n + y1], &X_grid[x2 * n + y2]);
-            // K is symmetric, shouldn't go through all entries
+            K[i * t_gp + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
+                                        &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
+            // K is symmetric, shouldn't go through all entries when optimizing
+
+            /*printf("t_gp: %d, x0: %lf, y0: %lf, x1: %lf, y1: %lf, k: %lf, ki:%d \n", t_gp, X_grid[x1 * 2 * n + 2 * y1],
+                   X_grid[x1 * 2 * n + 2 * y1 + 1], X_grid[x2 * 2 * n + 2 * y2], X_grid[x2 * 2 * n + 2 * y2 + 1],
+                   K[i * t_gp + j], i * t_gp + j);*/
         }
+        //printf("\n");
     }
 
     // 2. Cholesky
     gsl_matrix_view K_view = gsl_matrix_view_array(K, t_gp, t_gp);
     cholesky(K_view, t_gp);
+    printf("Kernel matrix:\n");
+    for(int i = 0; i < t_gp; i++){
+        for(int j = 0; j < t_gp; j++){
+            printf("%lf ", K[i * t_gp + j]);
+        }
+        printf("\n");
+    }
+
     for (int i = 0; i < t_gp - 1; i++) {
         for (int j = i + 1; j < t_gp; j++) {
-            K[i * t_gp + j] = 0;
+            K[i * t_gp + j] = 0; //FIXME do we need that ?
         }
+    }
+
+    for(int i = 0; i < t_gp; i++){
+        for(int j = 0; j < t_gp;j++){
+            printf("%lf ",K[i*t_gp+j]);
+        }
+        printf("\n");
     }
 
     double *L = K;
@@ -68,14 +100,16 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     {
         for (int j = 0; j < n; j++) // for all points in X_grid
         {
-            double x_star = X_grid[i * n + j]; // Current grid point that we are looking at
+            double x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
+            double y_star = X_grid[2 * n * i + 2 * j + 1];
             double k_star[t_gp];
 
             for (int k = 0; k < t_gp; k++) {
                 int x = X[2 * k];
                 int y = X[2 * k + 1];
-                double arg1 = X_grid[x * n + y];
-                k_star[k] = (*kernel)(&arg1, &x_star);
+                double arg1x = X_grid[x * 2 * n + 2 * y];
+                double arg1y = X_grid[x * 2 * n + 2 * y + 1];
+                k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
             }
 
             double f_star = 0;
@@ -84,13 +118,16 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
             }
 
             mu[i * n + j] = f_star;
+            //printf("write in mu at %d \n", i*n+j);
             gsl_vector_view k_star_view = gsl_vector_view_array(k_star, t_gp);
             solve(L_view, k_star_view, t_gp, p, v);
+            //printf("loop solve done\n");
 
-            double variance = (*kernel)(&x_star, &x_star);
+            double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
             for (int k = 0; k < t_gp; k++) {
                 variance -= v->data[k] * v->data[k];
             }
+
             sigma[i * n + j] = variance;
 
         }

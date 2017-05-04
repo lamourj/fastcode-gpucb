@@ -18,6 +18,8 @@ class GPUCB(object):
     solution solution (i.e. larger curiosity)
     '''
     self.meshgrid = np.array(meshgrid)
+    #print(self.meshgrid.shape)
+
     self.environment = environment
     self.beta = beta
 
@@ -41,6 +43,7 @@ class GPUCB(object):
 
   def sample(self, x):
     t = self.environment.sample(x)
+    print("Sampled: [%lf %lf], result: %lf" % (x[0], x[1], t))
     self.X.append(x)
     self.T.append(t)
 
@@ -61,12 +64,17 @@ if __name__ == '__main__':
     def sample(self, x):
       return np.sin(x[0]) + np.cos(x[1])
 
-  x = np.arange(-3, 3, 0.25)
-  y = np.arange(-3, 3, 0.25)
+  #x = np.arange(-3, 3, 0.25)
+  x = np.arange(0, 3, 1)
+  y = np.arange(0, 3, 1)
+  #print(x)
+  #y = np.arange(-3, 3, 0.25)
+  #print(np.meshgrid(x,y))
   env = DummyEnvironment()
   agent = GPUCB(np.meshgrid(x, y), env)
-  for i in range(20):
+  nIter = 1
+  for i in range(nIter):
     agent.learn()
-    agent.plot()
+    #agent.plot()
   np.savetxt("reference_output.txt", agent.mu.reshape(agent.meshgrid[0].shape), fmt='%10.5f', delimiter=',')
   np.savetxt("sampler_output.txt", agent.environment.sample(agent.meshgrid), fmt='%10.5f', delimiter=',')
