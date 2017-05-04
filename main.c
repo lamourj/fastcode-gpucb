@@ -43,7 +43,7 @@ void learn(double *X_grid, int *X, double *T, int t, double *mu, double *sigma,
 double kernel2(double *x1, double *y1, double *x2, double *y2) {
     // RBF kernel
     double sigma = 1;
-    return exp((-(*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
+    return exp(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
 }
 
 void initialize_meshgrid(double *X_grid, int n, double min, double inc) {
