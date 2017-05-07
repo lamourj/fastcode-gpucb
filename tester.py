@@ -1,25 +1,42 @@
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import pylab as plt
+
 file1 = open("reference_output.txt", 'r')
-file2 = open("sampler_output.txt", 'r')
+file2 = open("mu_c.txt", 'r')
 
 lines1 = [line.replace("\n", "").split(",") for line in file1.readlines()]
-
 data1 = []
 
 for line in lines1:
     data1 += line
 
-lines2 = [line.replace("\n", "").split(",") for line in file2.readlines()]
+reference = np.array([float(item) for item in data1])
 
+lines2 = [line.replace("\n", "").split(",") for line in file2.readlines()]
 data2 = []
 
 for line in lines2:
     data2 += line
 
-data1 = [float(item.strip()) for item in data1]
-data2 = [float(item.strip()) for item in data2]
+mu = []
 
-sum = 0
-for i in range(len(data1)):
-    sum += abs(data1[i]-data2[i])
+for item in data2:
+    try :
+        mu.append(float(item))
+    except:
+        pass
 
-print (sum/len(data1))
+mu = np.array(mu)
+
+x = np.arange(-3, 3, 0.25)
+y = np.arange(-3, 3, 0.25)
+
+grid = np.meshgrid(x, y)
+
+fig = plt.figure()
+ax = Axes3D(fig)
+ax.plot_wireframe(grid[0], grid[1], mu.reshape(grid[0].shape), alpha=0.5, color='g')
+ax.plot_wireframe(grid[0], grid[1], reference.reshape(grid[0].shape), alpha=0.5, color='b')
+
+plt.savefig('fig.png')

@@ -53,13 +53,13 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     // 2. Cholesky
     gsl_matrix_view K_view = gsl_matrix_view_array(K, t_gp, t_gp);
     cholesky(K_view, t_gp);
-    printf("Kernel matrix:\n");
-    for(int i = 0; i < t_gp; i++){
-        for(int j = 0; j < t_gp; j++){
-            printf("%lf ", K[i * t_gp + j]);
-        }
-        printf("\n");
-    }
+//    printf("Kernel matrix:\n");
+//    for(int i = 0; i < t_gp; i++){
+//        for(int j = 0; j < t_gp; j++){
+//            printf("%lf ", K[i * t_gp + j]);
+//        }
+//        printf("\n");
+//    }
 
     for (int i = 0; i < t_gp - 1; i++) {
         for (int j = i + 1; j < t_gp; j++) {
@@ -67,12 +67,12 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
         }
     }
 
-    for(int i = 0; i < t_gp; i++){
-        for(int j = 0; j < t_gp;j++){
-            printf("%lf ",K[i*t_gp+j]);
-        }
-        printf("\n");
-    }
+//    for(int i = 0; i < t_gp; i++){
+//        for(int j = 0; j < t_gp;j++){
+//            printf("%lf ",K[i*t_gp+j]);
+//        }
+//        printf("\n");
+//    }
 
     double *L = K;
 

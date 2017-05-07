@@ -9,14 +9,20 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 cmake-build-debug/
+main.o
+reference_output.txt
+reference_variance.txt
+sampler_output.txt
+mu_c.txt
+a.out
+fig.png
 
 # The virtual environment
 bin/
 lib/
 pip-selfcheck.json
 pyvenv.cfg
-reference_output.txt
-sampler_output.txt
+
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/

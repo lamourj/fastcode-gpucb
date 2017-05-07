@@ -62,19 +62,21 @@ class GPUCB(object):
 if __name__ == '__main__':
   class DummyEnvironment(object):
     def sample(self, x):
-      return np.sin(x[0]) + np.cos(x[1])
+      #return np.sin(x[0]) + np.cos(x[1])
+      return -x[0]**2 - x[1]**2
 
-  #x = np.arange(-3, 3, 0.25)
-  x = np.arange(0, 3, 1)
-  y = np.arange(0, 3, 1)
+  x = np.arange(-3, 3, 0.25)
+  #x = np.arange(0, 3, 1)
+  #y = np.arange(0, 3, 1)
   #print(x)
-  #y = np.arange(-3, 3, 0.25)
+  y = np.arange(-3, 3, 0.25)
   #print(np.meshgrid(x,y))
   env = DummyEnvironment()
   agent = GPUCB(np.meshgrid(x, y), env)
-  nIter = 1
+  nIter = 10
   for i in range(nIter):
     agent.learn()
     #agent.plot()
   np.savetxt("reference_output.txt", agent.mu.reshape(agent.meshgrid[0].shape), fmt='%10.5f', delimiter=',')
+  np.savetxt("reference_variance.txt", agent.sigma.reshape(agent.meshgrid[0].shape), fmt='%10.5f', delimiter=',')
   np.savetxt("sampler_output.txt", agent.environment.sample(agent.meshgrid), fmt='%10.5f', delimiter=',')

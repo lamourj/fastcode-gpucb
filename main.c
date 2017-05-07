@@ -3,8 +3,9 @@
 
 
 double function(double x, double y) {
-    double t = sin(x) + cos(y);
-    printf("sampled: [%.1lf %.1lf] result %lf \n", x, y, t);
+    //double t = sin(x) + cos(y);
+    double t = - pow(x, 2) - pow(y, 2);
+    printf("sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
 }
 
@@ -35,7 +36,6 @@ void learn(double *X_grid, int *X, double *T, int t, double *mu, double *sigma,
 
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
-
     T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
     gp_regression(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
 }
@@ -63,12 +63,12 @@ int main() {
     printf("Welcome\n");
     // Define D, mu_0, sigma_0, kernel function k
 
-    int maxIter = 1;
+    int maxIter = 10;
     double T[maxIter];
     int X[2 * maxIter];
 
     int n;
-    n = 3;
+    n = 24;
     double X_grid[2 * n * n];
     double mu[n * n];
     double sigma[n * n];
@@ -77,8 +77,8 @@ int main() {
         sigma[i] = 0.5;
     }
 
-    double grid_min = 0;
-    double grid_inc = 1;
+    double grid_min = -3;
+    double grid_inc = 0.25;
     initialize_meshgrid(X_grid, n, grid_min, grid_inc);
 
     double beta;
@@ -88,13 +88,23 @@ int main() {
         learn(X_grid, X, T, t, mu, sigma, kernel2, beta, n);
     }
 
+    FILE *f = fopen("mu_c.txt", "w");
     printf("Mu matrix after training: \n");
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            printf("%.5lf ", mu[i * n + j]);
+            fprintf(f, "%lf, ", mu[i * n + j]);
+        }
+        fprintf(f, "\n");
+    }
+
+    printf("Sigma matrix after training: \n");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%.5lf ", sigma[i * n + j]);
         }
         printf("\n");
     }
+
 
     return 0;
 }
