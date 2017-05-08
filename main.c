@@ -1,15 +1,15 @@
 #include "baseline.c"
-//#include "math.h"
-
+#include "time.h"
+#include <stdbool.h>
 
 double function(double x, double y) {
     //double t = sin(x) + cos(y);
-    double t = - pow(x, 2) - pow(y, 2);
-    printf("sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
+    double t = -pow(x, 2) - pow(y, 2);
+    // printf("sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
 }
 
-void learn(double *X_grid, int *X, double *T, int t, double *mu, double *sigma,
+void learn(double *X_grid, bool* sampled, int *X, double *T, int t, double *mu, double *sigma,
            double(*kernel)(double *, double *, double *, double *), double beta, int n) {
     /*
      * grid_idx = self.argmax_ucb()
@@ -26,7 +26,7 @@ void learn(double *X_grid, int *X, double *T, int t, double *mu, double *sigma,
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             double currentValue = mu[i * n + j] + beta * sigma[i * n + j];
-            if (currentValue > max) {
+            if (currentValue > max && !sampled[i * n + j]) {
                 max = currentValue;
                 maxI = i;
                 maxJ = j;
@@ -36,6 +36,7 @@ void learn(double *X_grid, int *X, double *T, int t, double *mu, double *sigma,
 
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
+    sampled[maxI * n + maxJ] = true;
     T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
     gp_regression(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
 }
@@ -59,17 +60,18 @@ void initialize_meshgrid(double *X_grid, int n, double min, double inc) {
     }
 }
 
-int main() {
-    printf("Welcome\n");
+int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
+    // printf("Welcome\n");
     // Define D, mu_0, sigma_0, kernel function k
 
-    int maxIter = 10;
     double T[maxIter];
     int X[2 * maxIter];
 
-    int n;
-    n = 24;
     double X_grid[2 * n * n];
+    bool sampled[n * n];
+    for(int i = 0; i < n * n; i++){
+        sampled[i] = false;
+    }
     double mu[n * n];
     double sigma[n * n];
     for (int i = 0; i < n * n; i++) {
@@ -77,17 +79,16 @@ int main() {
         sigma[i] = 0.5;
     }
 
-    double grid_min = -3;
-    double grid_inc = 0.25;
     initialize_meshgrid(X_grid, n, grid_min, grid_inc);
 
     double beta;
     beta = 100;
 
     for (int t = 0; t < maxIter; t++) {
-        learn(X_grid, X, T, t, mu, sigma, kernel2, beta, n);
+        learn(X_grid, sampled, X, T, t, mu, sigma, kernel2, beta, n);
     }
 
+    /*
     FILE *f = fopen("mu_c.txt", "w");
     printf("Mu matrix after training: \n");
     for (int i = 0; i < n; i++) {
@@ -104,7 +105,32 @@ int main() {
         }
         printf("\n");
     }
+    fclose(f);
+    */
+    return 0;
+}
 
+int main() {
+    int n, i;
+    const int maxIter = 20;
+    const int nIt = 200;
+    const double cycles_per_second = 2.5 * pow(10, 9);
+    const double grid_min = -3;
+    const double grid_inc = 0.25;
 
+    for (n = 20; n <= 40; n++) {
+        for(i = 0; i < 10; i++){
+            gpucb(maxIter, n, grid_min, grid_inc);
+        }
+        clock_t start = clock();
+        for (i = 0; i < nIt; i++) {
+            gpucb(maxIter, n, grid_min, grid_inc);
+        }
+        clock_t end = clock();
+        double time_elapsed_in_seconds = (end - start) / (double) CLOCKS_PER_SEC;
+        double seconds_per_iteration = time_elapsed_in_seconds / nIt;
+        double cycles_per_iteration = seconds_per_iteration * cycles_per_second;
+        printf("n: %d, seconds/it: %lf, cycles/it: %lf\n", n, seconds_per_iteration, cycles_per_iteration);
+    }
     return 0;
 }

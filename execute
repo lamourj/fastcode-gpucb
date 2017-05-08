@@ -1,7 +1,7 @@
 #!/bin/bash
 
-gcc -Wall -I/usr/local/include -c main.c -o main.o
-gcc -L/usr/local/lib -lgsl -lgslcblas main.o
+gcc -Wall -O0 -I/usr/local/include -c main.c -o main.o
+gcc -O0 -L/usr/local/lib -lgsl -lgslcblas main.o
 ./a.out
 
 python3 reference_gpucb.py
