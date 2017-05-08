@@ -23,6 +23,12 @@ void solve(gsl_matrix_view A, gsl_vector_view b, int n, gsl_permutation *p, gsl_
     gsl_linalg_LU_solve(&A.matrix, p, &b.vector, x);
 }
 
+
+void cholesky_solve(gsl_matrix_view A, gsl_vector_view b, gsl_vector *x) {
+    gsl_linalg_cholesky_solve(&A.matrix, &b.vector, x);
+}
+
+
 void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(double *, double *, double *, double *),
                    double *mu,
                    double *sigma, int n) {
@@ -61,11 +67,11 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
 //        printf("\n");
 //    }
 
-    for (int i = 0; i < t_gp - 1; i++) {
-        for (int j = i + 1; j < t_gp; j++) {
-            K[i * t_gp + j] = 0; //FIXME do we need that ?
-        }
-    }
+//    for (int i = 0; i < t_gp - 1; i++) {
+//        for (int j = i + 1; j < t_gp; j++) {
+//            K[i * t_gp + j] = 0; //FIXME do we need that ? NO
+//        }
+//    }
 
 //    for(int i = 0; i < t_gp; i++){
 //        for(int j = 0; j < t_gp;j++){
@@ -86,12 +92,12 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     gsl_matrix_view L_T_view = gsl_matrix_view_array(L_T, t_gp, t_gp);
     gsl_vector_view T_view = gsl_vector_view_array(T, t_gp);
 
-    solve(L_view, T_view, t_gp, p, x);
+    cholesky_solve(L_view, T_view, x);
 
     gsl_matrix_transpose_memcpy(&L_T_view.matrix, &L_view.matrix);
 
     gsl_vector_view x_view = gsl_vector_subvector(x, 0, t_gp);
-    solve(L_T_view, x_view, t_gp, p, alpha);
+    cholesky_solve(L_T_view, x_view, alpha);
     gsl_vector_free(x);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
@@ -120,7 +126,7 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
             mu[i * n + j] = f_star;
             //printf("write in mu at %d \n", i*n+j);
             gsl_vector_view k_star_view = gsl_vector_view_array(k_star, t_gp);
-            solve(L_view, k_star_view, t_gp, p, v);
+            cholesky_solve(L_view, k_star_view, v);
             //printf("loop solve done\n");
 
             double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
