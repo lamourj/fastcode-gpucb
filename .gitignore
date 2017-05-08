@@ -16,6 +16,7 @@ sampler_output.txt
 mu_c.txt
 a.out
 fig.png
+runtimes.txt
 
 # The virtual environment
 bin/

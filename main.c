@@ -111,26 +111,40 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
 }
 
 int main() {
-    int n, i;
-    const int maxIter = 20;
-    const int nIt = 200;
+    int n, i, k;
+    const int nIter = 20;
+    const int nMin = 20;
+    const int nMax = 5000;
+    const int nInc = 20;
+    const int nRuns = 300;
     const double cycles_per_second = 2.5 * pow(10, 9);
     const double grid_min = -3;
     const double grid_inc = 0.25;
 
-    for (n = 20; n <= 40; n++) {
+    double seconds_per_it[(int) ceil((nMax - nMin) / nInc)];
+
+    k = 0;
+    for (n = nMin; n <= nMax; n+=nInc) {
         for(i = 0; i < 10; i++){
-            gpucb(maxIter, n, grid_min, grid_inc);
+            gpucb(nIter, n, grid_min, grid_inc);
         }
         clock_t start = clock();
-        for (i = 0; i < nIt; i++) {
-            gpucb(maxIter, n, grid_min, grid_inc);
+        for (i = 0; i < nRuns; i++) {
+            gpucb(nIter, n, grid_min, grid_inc);
         }
         clock_t end = clock();
         double time_elapsed_in_seconds = (end - start) / (double) CLOCKS_PER_SEC;
-        double seconds_per_iteration = time_elapsed_in_seconds / nIt;
+        double seconds_per_iteration = time_elapsed_in_seconds / nRuns;
         double cycles_per_iteration = seconds_per_iteration * cycles_per_second;
         printf("n: %d, seconds/it: %lf, cycles/it: %lf\n", n, seconds_per_iteration, cycles_per_iteration);
+        seconds_per_it[k++] = seconds_per_iteration;
     }
+
+    FILE *f = fopen("runtimes.txt", "w");
+    fprintf(f, "n, seconds_per_it, cycles_per_it \n");
+    for(k = 0; k < (int) ceil((nMax - nMin) / nInc); k++) {
+        fprintf(f, "%d, %d, %lf, %lf \n", k * nInc + nMin, nIter, seconds_per_it[k], seconds_per_it[k] * cycles_per_second);
+    }
+    fclose(f);
     return 0;
 }
