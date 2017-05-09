@@ -18,6 +18,8 @@ mu_c.txt
 a.out
 fig.png
 runtimes.txt
+src/cholesky.o
+src/cholesky
 
 # The virtual environment
 bin/
