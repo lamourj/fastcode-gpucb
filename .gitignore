@@ -9,6 +9,7 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 cmake-build-debug/
+output/
 main.o
 reference_output.txt
 reference_variance.txt

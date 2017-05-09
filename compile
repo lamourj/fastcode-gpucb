@@ -1,4 +1,0 @@
-# Compile instructions - works if libraries installed with homebrew.
-
-gcc -Wall -l/usr/local/include -c main.c
-gcc -L/usr/local/include -lgsl -lgslcblas main.o
