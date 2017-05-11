@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/perf.h
+stdint.h
+-
+pcm_Export.h
+../include/pcm_Export.h
+
+/nas/lamourj/Documents/timing/lib/perf/perf_linux.cpp
+cstdint
+-
+iostream
+-
+vector
+-
+string.h
+-
+unistd.h
+-
+errno.h
+-
+sys/ioctl.h
+-
+sys/syscall.h
+-
+linux/perf_event.h
+-
+linux/hw_breakpoint.h
+-
+perfmon/pfmlib.h
+-
+perf.h
+/nas/lamourj/Documents/timing/lib/perf/perf.h
+
+pcm_Export.h
+

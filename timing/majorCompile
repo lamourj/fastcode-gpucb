@@ -1,0 +1,7 @@
+rm -rf build
+rm bin/comp
+mkdir build
+cd build
+cmake3 -DLINUX_PERF=1 ..
+cd ..
+cmake3 --build build --config Release

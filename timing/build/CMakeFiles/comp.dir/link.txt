@@ -1,0 +1,1 @@
+/usr/bin/c++   -O3 -std=c++11   CMakeFiles/comp.dir/src/main.c.o  -o ../bin/comp -rdynamic ../bin/libpcm.a -lpfm 

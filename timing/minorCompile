@@ -1,0 +1,2 @@
+cmake3 --build build --config Release
+./bin/comp

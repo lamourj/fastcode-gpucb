@@ -1,0 +1,4 @@
+#ifndef INTELPCM_MAIN_H
+#define INTELPCM_MAIN_H
+
+#endif //INTELPCM_MAIN_H

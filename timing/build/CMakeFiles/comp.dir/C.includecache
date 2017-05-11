@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/perf.h
+stdint.h
+-
+pcm_Export.h
+../include/pcm_Export.h
+
+/nas/lamourj/Documents/timing/src/main.c
+stdio.h
+-
+math.h
+-
+stdlib.h
+-
+string.h
+-
+float.h
+-
+perf.h
+/nas/lamourj/Documents/timing/src/perf.h
+test.h
+/nas/lamourj/Documents/timing/src/test.h
+
+/nas/lamourj/Documents/timing/src/test.h
+stdio.h
+-
+
+pcm_Export.h
+
