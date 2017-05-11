@@ -4,7 +4,13 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_matrix.h>
 
-// Straightforward implementation of inplace Cholesky decomposition of matrix A.
+/*
+ Straightforward implementation of inplace Cholesky decomposition of matrix A.
+ Input arguments:
+    A:    The matrix to decompose
+    n:    The size of the data in matrix A to decompose
+    size: The actual size of the rows
+ */
 void cholesky(float *A, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
@@ -26,9 +32,15 @@ void cholesky(float *A, int n, int size) {
 
 
 /*
-Incremental implementation of Cholesky decomposition:
-The matrix contains a Cholesky decomposition until row n1,
-rows n1, to n2 are new data.
+ Incremental implementation of Cholesky decomposition:
+ The matrix contains a Cholesky decomposition until row n1,
+ rows n1, to n2 are new data.
+ Input arguments:
+    A:    Partially decomposed matrix with new data from row n1, to n2
+    n1:   Start of the new data
+    n2:   End of the new data
+    size: The actual size of the rows
+
  */
 void incremental_cholesky(float *A, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
