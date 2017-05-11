@@ -9,6 +9,7 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 cmake-build-debug/
+output/
 main.o
 reference_output.txt
 reference_variance.txt
@@ -17,6 +18,8 @@ mu_c.txt
 a.out
 fig.png
 runtimes.txt
+src/cholesky.o
+src/cholesky
 
 # The virtual environment
 bin/
