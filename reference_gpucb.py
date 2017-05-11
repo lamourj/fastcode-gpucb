@@ -43,7 +43,7 @@ class GPUCB(object):
 
   def sample(self, x):
     t = self.environment.sample(x)
-    print("Sampled: [%lf %lf], result: %lf" % (x[0], x[1], t))
+    print("(python) Sampled: [%lf %lf], result: %lf" % (x[0], x[1], t))
     self.X.append(x)
     self.T.append(t)
 
@@ -73,7 +73,7 @@ if __name__ == '__main__':
   #print(np.meshgrid(x,y))
   env = DummyEnvironment()
   agent = GPUCB(np.meshgrid(x, y), env)
-  nIter = 10
+  nIter = 6
   for i in range(nIter):
     agent.learn()
     #agent.plot()

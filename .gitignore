@@ -20,6 +20,8 @@ fig.png
 runtimes.txt
 src/cholesky.o
 src/cholesky
+plot.png
+fig_old.png
 
 # The virtual environment
 bin/

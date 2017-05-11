@@ -5,7 +5,7 @@
 double function(double x, double y) {
     //double t = sin(x) + cos(y);
     double t = -pow(x, 2) - pow(y, 2);
-    // printf("sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
+    printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
 }
 
@@ -61,8 +61,6 @@ void initialize_meshgrid(double *X_grid, int n, double min, double inc) {
 }
 
 int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
-    // printf("Welcome\n");
-    // Define D, mu_0, sigma_0, kernel function k
 
     double T[maxIter];
     int X[2 * maxIter];
@@ -84,10 +82,17 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
     double beta;
     beta = 100;
 
+    // -------------------------------------------------------------
+    //                  Done with initializations
+    // -------------------------------------------------------------
+
     for (int t = 0; t < maxIter; t++) {
         learn(X_grid, sampled, X, T, t, mu, sigma, kernel2, beta, n);
     }
 
+    // -------------------------------------------------------------
+    //           Done with gpucb; rest is output writing
+    // -------------------------------------------------------------
 
     FILE *f = fopen("mu_c.txt", "w");
     printf("Mu matrix after training: \n");
@@ -105,7 +110,7 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
         for (int j = 0; j < n; j++) {
             //printf("%.5lf ", sigma[i * n + j]);
         }
-        printf("\n");
+        //printf("\n");
     }
     fclose(f);
 
@@ -123,7 +128,7 @@ int main() {
     const double grid_min = -3;
     const double grid_inc = 0.25;
 
-    gpucb(2, 24, grid_min, grid_inc);
+    gpucb(6, 24, grid_min, grid_inc);
 //    double seconds_per_it[(int) ceil((nMax - nMin) / nInc)];
 //
 //    k = 0;
