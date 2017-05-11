@@ -4,24 +4,48 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_matrix.h>
 
-//Straightforward implementation of inplace Cholesky decomposition of matrix A.
-void cholesky(float *A, int n) {
+// Straightforward implementation of inplace Cholesky decomposition of matrix A.
+void cholesky(float *A, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
-        //Update the off diagonal entries first.
+        // Update the off diagonal entries first.
         for (int j = 0; j < i; ++j) {
             for (int k = 0; k < j; ++k) {
-                A[n * i + j] -= A[n * i + k] * A[n * j + k];
+                A[size * i + j] -= A[size * i + k] * A[size * j + k];
             }
-            A[n * i + j] /= A[n * j + j];
+            A[size * i + j] /= A[size * j + j];
         }
 
-        //Update the diagonal entries.
+        // Update the diagonal entry of this row.
         for (int k = 0; k < i; ++k) {
-            A[n * i + i] -= A[n * i + k] * A[n * i + k];
+            A[size * i + i] -= A[size * i + k] * A[size * i + k];
         }
-        A[n * i + i] = sqrtf(A[n * i + i]);
+        A[size * i + i] = sqrtf(A[size * i + i]);
     }
+}
+
+
+/*
+Incremental implementation of Cholesky decomposition:
+The matrix contains a Cholesky decomposition until row n1,
+rows n1, to n2 are new data.
+ */
+void incremental_cholesky(float *A, int n1, int n2, int size) {
+    for (int i = n1; i < n2; ++i) {
+        // Update the off diagonal entries.
+        for (int j = 0; j < i; ++j) {
+            for (int k = 0; k < j; ++k) {
+                A[size * i + j] -= A[size * i + k] * A[size * j + k];
+            }
+            A[size * i + j] /= A[size * j + j];
+        }
+        // Update the diagonal entry.
+        for (int k = 0; k < i; ++k) {
+            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+        }
+        A[size * i + i] = sqrtf(A[size * i + i]);
+    }
+
 }
 
 float frand() {
@@ -59,7 +83,9 @@ int main () {
         printf("\n");
     }
 
-    cholesky(PSD, n);
+    //cholesky(PSD, n-2, n);
+
+    incremental_cholesky(PSD, 0, n, n);
 
     gsl_linalg_cholesky_decomp1(L);
 
