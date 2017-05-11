@@ -1,31 +1,90 @@
 #include "stdio.h"
 #include "math.h"
 #include <stdio.h>
-#include <gsl/gsl_linalg.h>
 #include "stdio.h"
 
-void cholesky(gsl_matrix_view X, int n) {
-    /*
-     * These functions factorize the symmetric, positive-definite square matrix A into the
-     * Cholesky decomposition A = L L^T (or A = L L^H for the complex case). On input, the
-     * values from the diagonal and lower-triangular part of the matrix A are used (the
-     * upper triangular part is ignored). On output the diagonal and lower triangular part
-     * of the input matrix A contain the matrix L, while the upper triangular part is
-     * unmodified. If the matrix is not positive-definite then the decomposition will fail,
-     *  returning the error code GSL_EDOM.
-     */
-    gsl_linalg_cholesky_decomp1(&X.matrix);
+/*
+ Straightforward implementation of inplace Cholesky decomposition of matrix A.
+ Input arguments:
+    A:    The matrix to decompose
+    n:    The size of the data in matrix A to decompose
+    size: The actual size of the rows
+ */
+void cholesky(double *A, int n, int size) {
+    for (int i = 0; i < n; ++i) {
+
+        // Update the off diagonal entries first.
+        for (int j = 0; j < i; ++j) {
+            for (int k = 0; k < j; ++k) {
+                A[size * i + j] -= A[size * i + k] * A[size * j + k];
+            }
+            A[size * i + j] /= A[size * j + j];
+        }
+
+        // Update the diagonal entry of this row.
+        for (int k = 0; k < i; ++k) {
+            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+        }
+        A[size * i + i] = sqrt(A[size * i + i]);
+    }
 }
 
-void solve(gsl_matrix_view A, gsl_vector_view b, int n, gsl_permutation *p, gsl_vector *x) {
-    int s;
-    gsl_linalg_LU_decomp(&A.matrix, p, &s);
-    gsl_linalg_LU_solve(&A.matrix, p, &b.vector, x);
+// Crout uses unit diagonals for the upper triangle
+void Crout(int d,double*S,double*D){
+    for(int k=0;k<d;++k){
+        for(int i=k;i<d;++i){
+            double sum=0.;
+            for(int p=0;p<k;++p)sum+=D[i*d+p]*D[p*d+k];
+            D[i*d+k]=S[i*d+k]-sum; // not dividing by diagonals
+        }
+        for(int j=k+1;j<d;++j){
+            double sum=0.;
+            for(int p=0;p<k;++p)sum+=D[k*d+p]*D[p*d+j];
+            D[k*d+j]=(S[k*d+j]-sum)/D[k*d+k];
+        }
+    }
+}
+void solveCrout(int d,double*LU,double*b,double*x){
+    double y[d];
+    for(int i=0;i<d;++i){
+        double sum=0.;
+        for(int k=0;k<i;++k)sum+=LU[i*d+k]*y[k];
+        y[i]=(b[i]-sum)/LU[i*d+i];
+    }
+    for(int i=d-1;i>=0;--i){
+        double sum=0.;
+        for(int k=i+1;k<d;++k)sum+=LU[i*d+k]*x[k];
+        x[i]=(y[i]-sum); // not dividing by diagonals
+    }
+}
+
+void solve(double *A, double *b,  int n, double *x){
+    Crout(n,A,A);
+    solveCrout(n,A,b,x);
+}
+
+void cholesky_solve(int d,double*LU,double*b,double*x){
+    double y[d];
+    for(int i=0;i<d;++i){
+        double sum=0.;
+        for(int k=0;k<i;++k)sum+=LU[i*d+k]*y[k];
+        y[i]=(b[i]-sum)/LU[i*d+i];
+    }
+    for(int i=d-1;i>=0;--i){
+        double sum=0.;
+        for(int k=i+1;k<d;++k)sum+=LU[k*d+i]*x[k];
+        x[i]=(y[i]-sum)/LU[i*d+i];
+    }
 }
 
 
-void cholesky_solve(gsl_matrix_view A, gsl_vector_view b, gsl_vector *x) {
-    gsl_linalg_cholesky_solve(&A.matrix, &b.vector, x);
+void transpose(double *M, double *M_T, int d){
+    for(int i=0; i<d; ++i){
+        for(int j=0; j<d; ++j)
+        {
+            M_T[j*d+i] = M[i*d+j];
+        }
+    }
 }
 
 
@@ -57,8 +116,8 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     }
 
     // 2. Cholesky
-    gsl_matrix_view K_view = gsl_matrix_view_array(K, t_gp, t_gp);
-    cholesky(K_view, t_gp);
+    cholesky(K, t_gp, t_gp);
+
 //    printf("Kernel matrix:\n");
 //    for(int i = 0; i < t_gp; i++){
 //        for(int j = 0; j < t_gp; j++){
@@ -83,22 +142,15 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     double *L = K;
 
     // 3. Compute alpha
-    gsl_vector *x = gsl_vector_alloc(t_gp);
-    gsl_vector *alpha = gsl_vector_alloc(t_gp);
-    gsl_vector *v = gsl_vector_alloc(t_gp);
-    gsl_permutation *p = gsl_permutation_alloc(t_gp);
+    double x[t_gp];
+    double alpha[t_gp];
+    double v[t_gp];
 
-    gsl_matrix_view L_view = gsl_matrix_view_array(L, t_gp, t_gp);
-    gsl_matrix_view L_T_view = gsl_matrix_view_array(L_T, t_gp, t_gp);
-    gsl_vector_view T_view = gsl_vector_view_array(T, t_gp);
 
-    cholesky_solve(L_view, T_view, x);
+    cholesky_solve(t_gp, L, T, x);
 
-    gsl_matrix_transpose_memcpy(&L_T_view.matrix, &L_view.matrix);
-
-    gsl_vector_view x_view = gsl_vector_subvector(x, 0, t_gp);
-    cholesky_solve(L_T_view, x_view, alpha);
-    gsl_vector_free(x);
+    transpose(L, L_T, t_gp); // TODO: Maybe do this more efficient
+    cholesky_solve(t_gp, L_T, x, alpha);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
@@ -120,25 +172,26 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
 
             double f_star = 0;
             for (int k = 0; k < t_gp; k++) {
-                f_star += k_star[k] * alpha->data[k];
+                //f_star += k_star[k] * alpha->data[k];
+                f_star += k_star[k] * alpha[k];
             }
 
             mu[i * n + j] = f_star;
+            //printf("fstar is: %lf", f_star);
             //printf("write in mu at %d \n", i*n+j);
-            gsl_vector_view k_star_view = gsl_vector_view_array(k_star, t_gp);
-            cholesky_solve(L_view, k_star_view, v);
+            //gsl_vector_view k_star_view = gsl_vector_view_array(k_star, t_gp);
+            //cholesky_solve(L_view, k_star_view, v);
+            cholesky_solve(t_gp, L, k_star, v);
             //printf("loop solve done\n");
 
             double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
             for (int k = 0; k < t_gp; k++) {
-                variance -= v->data[k] * v->data[k];
+                //variance -= v->data[k] * v->data[k];
+                variance -= v[k] * v[k];
             }
 
             sigma[i * n + j] = variance;
 
         }
     }
-    gsl_vector_free(alpha);
-    gsl_permutation_free(p);
-    gsl_vector_free(v);
 }
