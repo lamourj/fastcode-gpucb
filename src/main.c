@@ -9,7 +9,7 @@ double function(double x, double y) {
     return t;
 }
 
-void learn(double *X_grid, bool* sampled, int *X, double *T, int t, double *mu, double *sigma,
+void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, double *sigma,
            double(*kernel)(double *, double *, double *, double *), double beta, int n) {
     /*
      * grid_idx = self.argmax_ucb()
@@ -19,13 +19,20 @@ void learn(double *X_grid, bool* sampled, int *X, double *T, int t, double *mu, 
     *  gp.fit(self.X, self.T)
     *  mu1 = self.mu
      */
-
+    bool debug = true;
     int maxI = 0;
     int maxJ = 0;
     double max = mu[0] + sqrt(beta) * sigma[0];
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            double currentValue = mu[i * n + j] + beta * sigma[i * n + j];
+            double currentValue = mu[i * n + j] + sqrt(beta) * sigma[i * n + j];
+            double x = X_grid[i * 2 * n + 2 * j];
+            double y = X_grid[i * 2 * n + 2 * j + 1];
+            if (debug && (x == 0 && y == -2.25 || x == 0 && y == -2)) {
+                printf("[x, y] = [%.2lf, %.2lf], mu[xy]: %lf, sigma[xy]: %lf, cv: %lf, alreadySampled: %d\n", x, y,
+                       mu[i * n + j], sigma[i * n + j],
+                       currentValue, sampled[i * n + j]);
+            }
             if (currentValue > max && !sampled[i * n + j]) {
                 max = currentValue;
                 maxI = i;
@@ -67,7 +74,7 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
 
     double X_grid[2 * n * n];
     bool sampled[n * n];
-    for(int i = 0; i < n * n; i++){
+    for (int i = 0; i < n * n; i++) {
         sampled[i] = false;
     }
     double mu[n * n];
@@ -95,24 +102,35 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
     // -------------------------------------------------------------
 
     FILE *f = fopen("mu_c.txt", "w");
-    printf("Mu matrix after training: \n");
+    bool printMuConsole = false;
+    bool printSigmaConsole = false;
+    if (printMuConsole) {
+        printf("Mu matrix after training: \n");
+    }
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             fprintf(f, "%lf, ", mu[i * n + j]);
-            //printf("%.5lf ", mu[i * n + j]);
-
+            if (printMuConsole) {
+                printf("%.5lf ", mu[i * n + j]);
+            }
         }
         fprintf(f, "\n");
-    }
-
-    printf("Sigma matrix after training: \n");
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            //printf("%.5lf ", sigma[i * n + j]);
+        if (printMuConsole) {
+            printf("\n");
         }
-        //printf("\n");
     }
     fclose(f);
+
+    if (printSigmaConsole) {
+        printf("\n\nSigma matrix after training: \n");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                printf("%.5lf ", sigma[i * n + j]);
+            }
+            printf("\n");
+        }
+    }
+
 
     return 0;
 }

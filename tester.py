@@ -5,6 +5,12 @@ from matplotlib import pylab as plt
 file1 = open("reference_output.txt", 'r')
 file2 = open("mu_c.txt", 'r')
 
+
+def sample(x):
+    #return np.sin(x[0]) + np.cos(x[1])
+    return -x[0]**2 - x[1]**2
+
+
 lines1 = [line.replace("\n", "").split(",") for line in file1.readlines()]
 data1 = []
 
@@ -22,7 +28,7 @@ for line in lines2:
 mu = []
 
 for item in data2:
-    try :
+    try:
         mu.append(float(item))
     except:
         pass
@@ -38,6 +44,7 @@ fig = plt.figure()
 ax = Axes3D(fig)
 ax.plot_wireframe(grid[0], grid[1], mu.reshape(grid[0].shape), alpha=0.5, color='g', label='our estimation')
 ax.plot_wireframe(grid[0], grid[1], reference.reshape(grid[0].shape), alpha=0.5, color='b', label='py reference')
+# ax.plot_wireframe(grid[0], grid[1], sample(grid), alpha=0.5, color='Orange', label='real function')
 plt.legend()
 
 plt.savefig('fig.png')
