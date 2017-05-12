@@ -63,6 +63,16 @@ void solve(double *A, double *b,  int n, double *x){
     solveCrout(n,A,b,x);
 }
 
+
+/*
+ * Solver for a matrix that is in Cholesky decomposition.
+ * Input arguments:
+ *      d: dimension of matrix
+ *      LU: matrix
+ *      b: right hand side
+ *      x: vector to put result in
+ *      lower: if one the lower triangle system is solved, else the upper triangle system is solved.
+*/
 void cholesky_solve2(int d, double *LU, double *b, double *x, int lower){
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
@@ -85,7 +95,7 @@ void cholesky_solve2(int d, double *LU, double *b, double *x, int lower){
 
 }
 
-
+// Old version.
 void cholesky_solve(int d,double*LU,double*b,double*x){
     double y[d];
     for(int i=0;i<d;++i){
