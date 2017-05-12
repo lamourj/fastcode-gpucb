@@ -42,8 +42,8 @@ grid = np.meshgrid(x, y)
 
 fig = plt.figure()
 ax = Axes3D(fig)
-ax.plot_wireframe(grid[0], grid[1], mu.reshape(grid[0].shape), alpha=0.5, color='g', label='our estimation')
-ax.plot_wireframe(grid[0], grid[1], reference.reshape(grid[0].shape), alpha=0.5, color='b', label='py reference')
+ax.plot_wireframe(grid[0], grid[1], mu.reshape(grid[0].shape) - reference.reshape(grid[0].shape), alpha=0.5, color='g', label='our estimation')
+# ax.plot_wireframe(grid[0], grid[1], reference.reshape(grid[0].shape), alpha=0.5, color='b', label='py reference')
 # ax.plot_wireframe(grid[0], grid[1], sample(grid), alpha=0.5, color='Orange', label='real function')
 plt.legend()
 

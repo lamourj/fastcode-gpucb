@@ -63,6 +63,29 @@ void solve(double *A, double *b,  int n, double *x){
     solveCrout(n,A,b,x);
 }
 
+void cholesky_solve2(int d, double *LU, double *b, double *x, int lower){
+    if (lower == 1) {
+        for (int i = 0; i < d; ++i) {
+            double sum = 0.;
+            for (int k = 0; k < i; ++k) {
+                sum += LU[i * d + k] * x[k];
+            }
+            x[i] = (b[i] - sum) / LU[i * d + i];
+        }
+    }
+    else {
+        for (int i = d - 1; i >= 0; --i) {
+            double sum = 0.;
+            for (int k = i + 1; k < d; ++k) {
+                sum += LU[k * d + i] * x[k];
+            }
+            x[i] = (b[i] - sum) / LU[i * d + i];
+        }
+    }
+
+}
+
+
 void cholesky_solve(int d,double*LU,double*b,double*x){
     double y[d];
     for(int i=0;i<d;++i){
@@ -76,6 +99,8 @@ void cholesky_solve(int d,double*LU,double*b,double*x){
         x[i]=(y[i]-sum)/LU[i*d+i];
     }
 }
+
+
 
 
 void transpose(double *M, double *M_T, int d){
@@ -147,10 +172,10 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     double v[t_gp];
 
 
-    cholesky_solve(t_gp, L, T, x);
+    cholesky_solve2(t_gp, L, T, x, 1);
 
     transpose(L, L_T, t_gp); // TODO: Maybe do this more efficient
-    cholesky_solve(t_gp, L_T, x, alpha);
+    cholesky_solve2(t_gp, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
@@ -181,7 +206,7 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
             //printf("write in mu at %d \n", i*n+j);
             //gsl_vector_view k_star_view = gsl_vector_view_array(k_star, t_gp);
             //cholesky_solve(L_view, k_star_view, v);
-            cholesky_solve(t_gp, L, k_star, v);
+            cholesky_solve2(t_gp, L, k_star, v, 1);
             //printf("loop solve done\n");
 
             double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);

@@ -3,7 +3,7 @@
 #include <stdbool.h>
 
 double function(double x, double y) {
-    //double t = sin(x) + cos(y);
+    // double t = sin(x) + cos(y);
     double t = -pow(x, 2) - pow(y, 2);
     printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
@@ -103,7 +103,7 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
 
     FILE *f = fopen("mu_c.txt", "w");
     bool printMuConsole = false;
-    bool printSigmaConsole = false;
+    bool printSigmaConsole = true;
     if (printMuConsole) {
         printf("Mu matrix after training: \n");
     }
