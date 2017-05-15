@@ -2,11 +2,13 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <float.h>
 #include "perf.h"
 #include "gpucb.h"
 
-#define N 500
+#define N 1000
+
 
 
 int main () {
@@ -46,11 +48,21 @@ int main () {
     cycles_count_start();
     for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);;
     cycles_gpucb = cycles_count_stop();
-    
-
-    printf("gpucb  : %lf cycles\n", (double) cycles_gpucb / N);
 
     perf_done();
+    printf("gpucb  : %lf cycles\n", (double) cycles_gpucb / N);
 
+    
+    // Save output to file:
+    if(true) {
+        FILE *f = fopen("mu_timed.txt", "w");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                fprintf(f, "%lf, ", mu[i * n + j]);
+            }
+            fprintf(f, "\n");
+        }
+        fclose(f);
+    }
     return 0;
 }

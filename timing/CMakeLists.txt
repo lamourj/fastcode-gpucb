@@ -101,7 +101,6 @@ set(SOURCE_FILES
     src/mathHelpers.c
     src/gpucb.h
     src/gpucb.c
-    src/test.h
     src/main.c
     src/main.h
 )
