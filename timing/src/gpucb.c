@@ -2,10 +2,6 @@
 #include "mathHelpers.h"
 #include <stdio.h>
 #include <math.h>
-
-
-#include "baseline.c"
-#include "time.h"
 #include <stdbool.h>
 
 double function(double x, double y) {
