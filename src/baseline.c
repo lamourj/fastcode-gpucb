@@ -1,7 +1,5 @@
-#include "stdio.h"
-#include "math.h"
+#include <math.h>
 #include <stdio.h>
-#include "stdio.h"
 
 /*
  Straightforward implementation of inplace Cholesky decomposition of matrix A.
