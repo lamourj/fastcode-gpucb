@@ -15,6 +15,7 @@ reference_output.txt
 reference_variance.txt
 sampler_output.txt
 mu_c.txt
+mu_timed.txt
 a.out
 fig.png
 runtimes.txt
