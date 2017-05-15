@@ -1,4 +1,0 @@
-/nas/lamourj/Documents/timing/build/CMakeFiles/edit_cache.dir
-/nas/lamourj/Documents/timing/build/CMakeFiles/rebuild_cache.dir
-/nas/lamourj/Documents/timing/build/CMakeFiles/comp.dir
-/nas/lamourj/Documents/timing/build/CMakeFiles/pcm.dir

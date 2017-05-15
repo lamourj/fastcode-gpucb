@@ -22,7 +22,7 @@ src/cholesky.o
 src/cholesky
 plot.png
 fig_old.png
-timing/build
+timing/build/
 
 # The virtual environment
 bin/
