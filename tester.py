@@ -7,8 +7,8 @@ file2 = open("mu_c.txt", 'r')
 
 
 def sample(x):
-    #return np.sin(x[0]) + np.cos(x[1])
-    return -x[0]**2 - x[1]**2
+    # return np.sin(x[0]) + np.cos(x[1])
+    return -x[0] ** 2 - x[1] ** 2
 
 
 lines1 = [line.replace("\n", "").split(",") for line in file1.readlines()]
@@ -34,19 +34,21 @@ for item in data2:
         pass
 
 mu = np.array(mu)
-
 x = np.arange(-3, 3, 0.25)
 y = np.arange(-3, 3, 0.25)
 
 grid = np.meshgrid(x, y)
+original = sample(grid)
 
 fig = plt.figure()
 ax = Axes3D(fig)
-ax.plot_wireframe(grid[0], grid[1], mu.reshape(grid[0].shape) - reference.reshape(grid[0].shape), alpha=0.5, color='g', label='our estimation')
+ax.plot_wireframe(grid[0], grid[1], mu.reshape(grid[0].shape), alpha=0.5, color='g', label='our estimation')
 # ax.plot_wireframe(grid[0], grid[1], reference.reshape(grid[0].shape), alpha=0.5, color='b', label='py reference')
-# ax.plot_wireframe(grid[0], grid[1], sample(grid), alpha=0.5, color='Orange', label='real function')
+ax.plot_wireframe(grid[0], grid[1], original, alpha=0.5, color='Orange', label='real function')
 plt.legend()
 
 plt.savefig('fig.png')
 
 print("np.linalg.norm(reference-mu) = %lf" % np.linalg.norm(mu - reference))
+print("np.linalg.norm(original-mu)=%lf, np.linalg.norm(original-reference)=%lf" % (
+    np.linalg.norm(original.flatten() - mu), np.linalg.norm(original.flatten() - reference)))

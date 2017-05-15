@@ -1,6 +1,5 @@
-#include "baseline.c"
-#include "time.h"
-#include <stdbool.h>
+#include "gpucb.h"
+
 
 double function(double x, double y) {
     // double t = sin(x) + cos(y);
@@ -134,6 +133,7 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
 
     return 0;
 }
+
 
 int main() {
     int n, i, k;

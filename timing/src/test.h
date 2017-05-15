@@ -1,5 +1,5 @@
 #include <stdio.h>
 
-double test(){
+double test() {
 	double i = 25 / 3.232;
 }

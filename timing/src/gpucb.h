@@ -1,0 +1,20 @@
+//
+// Created by Julien Lamour on 15.05.17.
+//
+#ifndef FASTCODE_GPUCB_GPUCB_H
+#define FASTCODE_GPUCB_GPUCB_H
+
+#include <stdbool.h>
+
+double function(double x, double y);
+
+void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, double *sigma,
+           double(*kernel)(double *, double *, double *, double *), double beta, int n);
+
+double kernel2(double *x1, double *y1, double *x2, double *y2);
+
+void initialize_meshgrid(double *X_grid, int n, double min, double inc);
+
+int gpucb(int maxIter, int n, double grid_min, double grid_inc);
+
+#endif //FASTCODE_GPUCB_GPUCB_H

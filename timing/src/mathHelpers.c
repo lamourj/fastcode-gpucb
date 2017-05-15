@@ -1,7 +1,8 @@
-#include "stdio.h"
-#include "math.h"
-#include <stdio.h>
-#include "stdio.h"
+//
+// Created by Julien Lamour on 15.05.17.
+//
+
+#include "mathHelpers.h"
 
 /*
  Straightforward implementation of inplace Cholesky decomposition of matrix A.
@@ -93,21 +94,6 @@ void cholesky_solve2(int d, double *LU, double *b, double *x, int lower) {
         }
     }
 
-}
-
-// Old version.
-void cholesky_solve(int d, double *LU, double *b, double *x) {
-    double y[d];
-    for (int i = 0; i < d; ++i) {
-        double sum = 0.;
-        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
-        y[i] = (b[i] - sum) / LU[i * d + i];
-    }
-    for (int i = d - 1; i >= 0; --i) {
-        double sum = 0.;
-        for (int k = i + 1; k < d; ++k)sum += LU[k * d + i] * x[k];
-        x[i] = (y[i] - sum) / LU[i * d + i];
-    }
 }
 
 

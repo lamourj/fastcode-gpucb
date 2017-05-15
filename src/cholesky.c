@@ -65,31 +65,30 @@ float frand() {
 }
 
 
-
-int main () {
+int main() {
 
     int n = 10;
-    float A[n*n];
-    float PSD[n*n];
-    gsl_matrix * L = gsl_matrix_alloc(n, n);
-    for (int i=0; i<n; ++i) {
-        for (int j=0; j<n; ++j) {
+    float A[n * n];
+    float PSD[n * n];
+    gsl_matrix *L = gsl_matrix_alloc(n, n);
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
             A[n * i + j] = frand();
         }
     }
 
-    for (int i=0; i<n; ++i) {
-        for (int j=0; j<n; ++j) {
-            PSD[i*n+j] = 0;
-            for (int k=0; k<n; ++k) {
-                PSD[i*n+j] += A[i*n+k]*A[j*n+k];
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            PSD[i * n + j] = 0;
+            for (int k = 0; k < n; ++k) {
+                PSD[i * n + j] += A[i * n + k] * A[j * n + k];
             }
-            gsl_matrix_set(L, i, j, PSD[i*n+j]);
+            gsl_matrix_set(L, i, j, PSD[i * n + j]);
         }
     }
 
-    for (int i=0; i<n; ++i) {
-        for (int j=0; j<n; ++j) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
             printf("%f ", PSD[n * i + j]);
         }
         printf("\n");
@@ -102,24 +101,20 @@ int main () {
     gsl_linalg_cholesky_decomp1(L);
 
     printf("The library decomposition:\n");
-    for (int i=0; i<n; ++i) {
-        for (int j=0; j<n; ++j) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
             printf("%f ", L->data[n * i + j]);
         }
         printf("\n");
     }
 
     printf("The handwritten decompostion:\n");
-    for (int i=0; i<n; ++i) {
-        for (int j=0; j<n; ++j) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
             printf("%f ", PSD[n * i + j]);
         }
         printf("\n");
     }
-
-
-
-
 
 
     return 0;
