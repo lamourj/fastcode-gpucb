@@ -15,6 +15,9 @@ double kernel2(double *x1, double *y1, double *x2, double *y2);
 
 void initialize_meshgrid(double *X_grid, int n, double min, double inc);
 
+int gpucb_initialized(int maxIter, int n, double *T, int *X, double *X_grid, bool *sampled, double *mu, double *sigma,
+                      double beta);
+
 int gpucb(int maxIter, int n, double grid_min, double grid_inc);
 
 #endif //FASTCODE_GPUCB_GPUCB_H

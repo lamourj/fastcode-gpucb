@@ -3,6 +3,7 @@
 //
 
 #include "mathHelpers.h"
+#include <math.h>
 
 /*
  Straightforward implementation of inplace Cholesky decomposition of matrix A.

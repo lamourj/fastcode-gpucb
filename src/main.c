@@ -67,35 +67,38 @@ void initialize_meshgrid(double *X_grid, int n, double min, double inc) {
     }
 }
 
+int gpucb_initialized(int maxIter, int n, double *T, int *X, double *X_grid, bool *sampled, double *mu, double *sigma,
+                      double beta) {
+    for (int t = 0; t < maxIter; t++) {
+        learn(X_grid, sampled, X, T, t, mu, sigma, kernel2, beta, n);
+    }
+}
+
 int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
 
+    // Allocations
     double T[maxIter];
     int X[2 * maxIter];
-
     double X_grid[2 * n * n];
     bool sampled[n * n];
-    for (int i = 0; i < n * n; i++) {
-        sampled[i] = false;
-    }
     double mu[n * n];
     double sigma[n * n];
+    const double beta = 100;
+
+    // Initializations
     for (int i = 0; i < n * n; i++) {
+        sampled[i] = false;
         mu[i] = 0;
         sigma[i] = 0.5;
     }
-
     initialize_meshgrid(X_grid, n, grid_min, grid_inc);
 
-    double beta;
-    beta = 100;
 
     // -------------------------------------------------------------
     //                  Done with initializations
     // -------------------------------------------------------------
 
-    for (int t = 0; t < maxIter; t++) {
-        learn(X_grid, sampled, X, T, t, mu, sigma, kernel2, beta, n);
-    }
+    gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
 
     // -------------------------------------------------------------
     //           Done with gpucb; rest is output writing
