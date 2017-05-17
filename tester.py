@@ -43,11 +43,17 @@ original = sample(grid)
 fig = plt.figure()
 ax = Axes3D(fig)
 ax.plot_wireframe(grid[0], grid[1], mu.reshape(grid[0].shape), alpha=0.5, color='g', label='our estimation')
-# ax.plot_wireframe(grid[0], grid[1], reference.reshape(grid[0].shape), alpha=0.5, color='b', label='py reference')
+#ax.plot_wireframe(grid[0], grid[1], reference.reshape(grid[0].shape), alpha=0.5, color='b', label='py reference')
 ax.plot_wireframe(grid[0], grid[1], original, alpha=0.5, color='Orange', label='real function')
+#ax.plot_wireframe(grid[0], grid[1], mu.reshape(grid[0].shape) - reference.reshape(grid[0].shape), alpha=0.5, color='Orange', label='diff mu-reference')
 plt.legend()
 
 plt.savefig('fig.png')
+
+# plt.clf()
+#plt.imshow((original.flatten()-mu).reshape(24,24), cmap='hot', interpolation='nearest')
+#plt.colorbar()
+#plt.show()
 
 print("np.linalg.norm(reference-mu) = %lf" % np.linalg.norm(mu - reference))
 print("np.linalg.norm(original-mu)=%lf, np.linalg.norm(original-reference)=%lf" % (

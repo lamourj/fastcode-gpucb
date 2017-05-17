@@ -1,5 +1,6 @@
 // This version includes the incremental cholesky factorization.
-#include "mathHelpers1.c"
+#include "gpucb1.h"
+#include "mathHelpers1.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>

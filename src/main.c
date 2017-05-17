@@ -4,15 +4,15 @@
 #include <string.h>
 #include <stdio.h>
 #include <float.h>
-#include "gpucb.h"
+#include "gpucb.h" // CHANGE TO gpucb1.h for newer version
 
-#define N 1000
-
-
-int main() {
+int main(int argc, char *argv[]) {
     // Execution variables
     const int n = 24; // Meshgrid size
-    const int maxIter = 10; // GP-UCB # of iterations
+    const int maxIter = atoi(argv[1]); // GP-UCB # of iterations
+    if(maxIter >= n) {
+        fprintf(stderr, " WARNING: maxIter>=n: maxIter=%d, n=%d", maxIter, n);
+    }
     const double grid_min = -3;
     const double grid_inc = 0.25;
 
@@ -33,8 +33,16 @@ int main() {
     }
 
 
-    initialize_meshgrid(X_grid, n, grid_min, grid_inc);
-    gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    // -------------------------------------------------------------------------------
+    //                          OLD VERSION
+    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
+    gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    // -------------------------------------------------------------------------------
+
+
+    // For new version, call this:
+    // initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
+    // Then call gpucb_initialized with appropriate arguments (signature changed).
 
     // Save output to file:
     if (true) {

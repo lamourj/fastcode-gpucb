@@ -1,5 +1,6 @@
 // This version uses the incremental cholesky factorization.
 
+#include "mathHelpers1.h"
 #include <math.h>
 
 

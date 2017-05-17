@@ -3,9 +3,19 @@
 #gcc -Wall -O3 -fno-tree-vectorize -I/usr/local/include -c src/main.c -o src/main.o
 #gcc -O3 -fno-tree-vectorize -L/usr/local/lib -lgsl -lgslcblas src/main.o
 
-gcc -O3 src/main.c src/main.h src/gpucb1.c src/mathHelpers1.c
-./a.out
+# Number of iterations to run (changes both python and C code)
+NITER=5
 
-python3 reference_gpucb.py
+# Use this for launching version 1 (requires changes in main):
+# gcc -O3 src/main.c src/main.h src/gpucb1.h src/gpucb1.c src/mathHelpers1.h src/mathHelpers1.c
+
+
+# Use this for the baseline:
+gcc -O3 src/main.c src/main.h src/gpucb.h src/gpucb.c src/mathHelpers.h src/mathHelpers.c
+
+
+./a.out $NITER
+
+python3 reference_gpucb.py $NITER
 python3 tester.py
 # python3 plot2.py

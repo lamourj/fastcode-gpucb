@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def flops(n, I=20, k=5, f=1):
+def flops(n, I=20, k=5, f=0):
 	# n = meshgrid
 	# I = total number of iterations
 	# k = kernel cost
 	# f = function cost
-	return I*2*n**2+I*f+I*(I+1)*(2*I+1)/6*k+I**2*(I+1)**2/4 + I*(I+1)*(2*I+1)/6+I*(I+1)/2+n**2*I*(I+1)/2*k+n**2*I*(I+1)+n**2/2*(I*(I+1)*(2*I+1)/6+I*(I+1)/2)+n**2*I*(I+1)+n**2*k
+	return I*2*n**2+I*f+I*(I+1)*(2*I+1)/6.0*k+I**2*(I+1)**2/4.0 + I*(I+1)*(2*I+1)/6.0+I*(I+1)/2.0+n**2*I*(I+1)/2.0*k+n**2*I*(I+1)+n**2/2.0*(I*(I+1)*(2*I+1)/6.0+I*(I+1)/2.0)+n**2*I*(I+1)+n**2*k
 
 data = np.loadtxt('runtimes.txt', delimiter=',', skiprows=1)
 n = data[:,0]

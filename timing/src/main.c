@@ -52,7 +52,9 @@ int main () {
     cycles_gpucb = cycles_count_stop();
 
     perf_done();
-    printf("gpucb  : %lf cycles\n", (double) cycles_gpucb / N);
+    printf("gpucb baseline: %lf cycles\n", (double) cycles_gpucb / N);
+
+    printf("gpucb version 1: Let's write it first :-)");
 
     
     // Save output to file:

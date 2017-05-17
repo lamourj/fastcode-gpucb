@@ -4,6 +4,7 @@ from matplotlib import pylab as plt
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
+import sys
 
 
 class GPUCB(object):
@@ -78,10 +79,10 @@ if __name__ == '__main__':
     # print(np.meshgrid(x,y))
     env = DummyEnvironment()
     agent = GPUCB(np.meshgrid(x, y), env)
-    nIter = 6
+    nIter = int(sys.argv[1])
     for i in range(nIter):
         agent.learn()
         # agent.plot()
-    np.savetxt("reference_output.txt", agent.mu.reshape(agent.meshgrid[0].shape), fmt='%10.5f', delimiter=',')
-    np.savetxt("reference_variance.txt", agent.sigma.reshape(agent.meshgrid[0].shape), fmt='%10.5f', delimiter=',')
-    np.savetxt("sampler_output.txt", agent.environment.sample(agent.meshgrid), fmt='%10.5f', delimiter=',')
+    np.savetxt("reference_output.txt", agent.mu.reshape(agent.meshgrid[0].shape), fmt='%.5f', delimiter=',')
+    np.savetxt("reference_variance.txt", agent.sigma.reshape(agent.meshgrid[0].shape), fmt='%.5f', delimiter=',')
+    np.savetxt("sampler_output.txt", agent.environment.sample(agent.meshgrid), fmt='%   .5f', delimiter=',')
