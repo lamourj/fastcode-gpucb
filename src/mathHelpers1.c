@@ -1,6 +1,4 @@
-//
-// Created by Julien Lamour on 15.05.17.
-//
+// This version uses the incremental cholesky factorization.
 
 #include "mathHelpers.h"
 #include <math.h>
