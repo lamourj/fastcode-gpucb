@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     }
     double maxX = X_grid[maxI * 2 * n + 2 * maxJ];
     double maxY = X_grid[maxI * 2 * n + 2 * maxJ + 1];
-    printf("\nMaximal point found is %f at [%f %f]\n\n", max, maxX, maxY);
+    printf("\nMaximal point found by C code is %f at [%f %f]\n\n", max, maxX, maxY);
 
     // Save output to file:
     if (true) {

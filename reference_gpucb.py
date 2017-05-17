@@ -38,7 +38,7 @@ class GPUCB(object):
         maxGrididx = np.argmax(self.mu)
         x, y = self.X_grid[maxGrididx]
         maxMu = np.amax(self.mu)
-        print("Maximal point found is %lf at [%lf %lf]" % (maxMu, x, y))
+        print("\nMaximal point found by python code is %lf at [%lf %lf]\n" % (maxMu, x, y))
 
 
 
