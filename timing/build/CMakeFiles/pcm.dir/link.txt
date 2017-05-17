@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../bin/libpcm.a  CMakeFiles/pcm.dir/lib/perf/perf_linux.cpp.o
-/usr/bin/ranlib ../bin/libpcm.a

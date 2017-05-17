@@ -1,5 +1,9 @@
+//
+// Created by Julien Lamour on 15.05.17.
+//
+
+#include "mathHelpers.h"
 #include <math.h>
-#include <stdio.h>
 
 /*
  Straightforward implementation of inplace Cholesky decomposition of matrix A.
@@ -27,33 +31,39 @@ void cholesky(double *A, int n, int size) {
     }
 }
 
-/*
- Incremental implementation of Cholesky decomposition:
- The matrix contains a Cholesky decomposition until row n1,
- rows n1, to n2 are new data.
- Input arguments:
-    A:    Partially decomposed matrix with new data from row n1, to n2
-    n1:   Start of the new data
-    n2:   End of the new data
-    size: The actual size of the rows
-
- */
-void incremental_cholesky(float *A, int n1, int n2, int size) {
-    for (int i = n1; i < n2; ++i) {
-        // Update the off diagonal entries.
-        for (int j = 0; j < i; ++j) {
-            for (int k = 0; k < j; ++k) {
-                A[size * i + j] -= A[size * i + k] * A[size * j + k];
-            }
-            A[size * i + j] /= A[size * j + j];
+// Crout uses unit diagonals for the upper triangle
+void Crout(int d, double *S, double *D) {
+    for (int k = 0; k < d; ++k) {
+        for (int i = k; i < d; ++i) {
+            double sum = 0.;
+            for (int p = 0; p < k; ++p)sum += D[i * d + p] * D[p * d + k];
+            D[i * d + k] = S[i * d + k] - sum; // not dividing by diagonals
         }
-        // Update the diagonal entry.
-        for (int k = 0; k < i; ++k) {
-            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+        for (int j = k + 1; j < d; ++j) {
+            double sum = 0.;
+            for (int p = 0; p < k; ++p)sum += D[k * d + p] * D[p * d + j];
+            D[k * d + j] = (S[k * d + j] - sum) / D[k * d + k];
         }
-        A[size * i + i] = sqrtf(A[size * i + i]);
     }
+}
 
+void solveCrout(int d, double *LU, double *b, double *x) {
+    double y[d];
+    for (int i = 0; i < d; ++i) {
+        double sum = 0.;
+        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
+        y[i] = (b[i] - sum) / LU[i * d + i];
+    }
+    for (int i = d - 1; i >= 0; --i) {
+        double sum = 0.;
+        for (int k = i + 1; k < d; ++k)sum += LU[i * d + k] * x[k];
+        x[i] = (y[i] - sum); // not dividing by diagonals
+    }
+}
+
+void solve(double *A, double *b, int n, double *x) {
+    Crout(n, A, A);
+    solveCrout(n, A, b, x);
 }
 
 
@@ -87,26 +97,10 @@ void cholesky_solve2(int d, double *LU, double *b, double *x, int lower) {
 
 }
 
-// Old version.
-void cholesky_solve(int d, double *LU, double *b, double *x) {
-    double y[d];
+
+void transpose(double *M, double *M_T, int d) {
     for (int i = 0; i < d; ++i) {
-        double sum = 0.;
-        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
-        y[i] = (b[i] - sum) / LU[i * d + i];
-    }
-    for (int i = d - 1; i >= 0; --i) {
-        double sum = 0.;
-        for (int k = i + 1; k < d; ++k)sum += LU[k * d + i] * x[k];
-        x[i] = (y[i] - sum) / LU[i * d + i];
-    }
-}
-
-
-void transpose(double *M, double *M_T, int d){
-    for(int i = 0; i < d; ++i){
-        for(int j = 0; j < d; ++j)
-        {
+        for (int j = 0; j < d; ++j) {
             M_T[j * d + i] = M[i * d + j];
         }
     }

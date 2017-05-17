@@ -1,11 +1,13 @@
-#include "baseline.c"
-#include "time.h"
+#include "gpucb.h"
+#include "mathHelpers.h"
+#include <stdio.h>
+#include <math.h>
 #include <stdbool.h>
 
 double function(double x, double y) {
     // double t = sin(x) + cos(y);
     double t = -pow(x, 2) - pow(y, 2);
-    printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
+    // printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
 }
 
@@ -26,6 +28,7 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             double currentValue = mu[i * n + j] + sqrt(beta) * sigma[i * n + j];
+            /*
             double x = X_grid[i * 2 * n + 2 * j];
             double y = X_grid[i * 2 * n + 2 * j + 1];
             if (debug && (x == 0 && y == -2.25 || x == 0 && y == -2)) {
@@ -33,6 +36,7 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
                        mu[i * n + j], sigma[i * n + j],
                        currentValue, sampled[i * n + j]);
             }
+             */
             if (currentValue > max && !sampled[i * n + j]) {
                 max = currentValue;
                 maxI = i;
@@ -135,50 +139,5 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
     }
 
 
-    return 0;
-}
-
-int main() {
-    int n, i, k;
-    const int nMin = 20;
-    const int nMax = 5000;
-    const int nInc = 20;
-    const int nRuns = 300;
-    const double cycles_per_second = 2.5 * pow(10, 9);
-    const double grid_min = -3;
-    const double grid_inc = 0.25;
-
-    const int nIter = 6;
-    n = 24;
-    gpucb(nIter, n, grid_min, grid_inc);
-
-    /*
-     * Timing with C clock.
-    double seconds_per_it[(int) ceil((nMax - nMin) / nInc)];
-
-    k = 0;
-    for (n = nMin; n <= nMax; n+=nInc) {
-        for(i = 0; i < 10; i++){
-            gpucb(nIter, n, grid_min, grid_inc);
-        }
-        clock_t start = clock();
-        for (i = 0; i < nRuns; i++) {
-            gpucb(nIter, n, grid_min, grid_inc);
-        }
-        clock_t end = clock();
-        double time_elapsed_in_seconds = (end - start) / (double) CLOCKS_PER_SEC;
-        double seconds_per_iteration = time_elapsed_in_seconds / nRuns;
-        double cycles_per_iteration = seconds_per_iteration * cycles_per_second;
-        printf("n: %d, seconds/it: %lf, cycles/it: %lf\n", n, seconds_per_iteration, cycles_per_iteration);
-        seconds_per_it[k++] = seconds_per_iteration;
-    }
-
-    FILE *f = fopen("runtimes.txt", "w");
-    fprintf(f, "n, seconds_per_it, cycles_per_it \n");
-    for(k = 0; k < (int) ceil((nMax - nMin) / nInc); k++) {
-        fprintf(f, "%d, %d, %lf, %lf \n", k * nInc + nMin, nIter, seconds_per_it[k], seconds_per_it[k] * cycles_per_second);
-    }
-    fclose(f);
-     */
     return 0;
 }

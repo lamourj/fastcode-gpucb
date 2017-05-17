@@ -15,6 +15,7 @@ reference_output.txt
 reference_variance.txt
 sampler_output.txt
 mu_c.txt
+mu_timed.txt
 a.out
 fig.png
 runtimes.txt
@@ -22,6 +23,7 @@ src/cholesky.o
 src/cholesky
 plot.png
 fig_old.png
+timing/build/
 
 # The virtual environment
 bin/
