@@ -1,5 +1,10 @@
+//
+// Created by Julien Lamour on 15.05.17.
+//
+
+#include "mathHelpers.h"
 #include <math.h>
-#include <stdio.h>
+
 
 /*
  Straightforward implementation of inplace Cholesky decomposition of matrix A.
@@ -103,10 +108,9 @@ void cholesky_solve(int d, double *LU, double *b, double *x) {
 }
 
 
-void transpose(double *M, double *M_T, int d){
-    for(int i = 0; i < d; ++i){
-        for(int j = 0; j < d; ++j)
-        {
+void transpose(double *M, double *M_T, int d) {
+    for (int i = 0; i < d; ++i) {
+        for (int j = 0; j < d; ++j) {
             M_T[j * d + i] = M[i * d + j];
         }
     }

@@ -3,5 +3,5 @@ project(fastcode-gpucb)
 
 set(CMAKE_C_STANDARD 99)
 
-set(SOURCE_FILES src/main.c)
+set(SOURCE_FILES src/main_old.c)
 add_executable(fastcode-gpucb ${SOURCE_FILES})

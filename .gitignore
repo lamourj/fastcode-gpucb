@@ -75,3 +75,6 @@ fabric.properties
 
 # ignore the whole project settings
 .idea
+src/gpucb.h.gch
+src/main.h.gch
+src/mathHelpers.h.gch
