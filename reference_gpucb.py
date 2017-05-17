@@ -34,6 +34,14 @@ class GPUCB(object):
     def argmax_ucb(self):
         return np.argmax(self.mu + self.sigma * np.sqrt(self.beta))
 
+    def max_point(self):
+        maxGrididx = np.argmax(self.mu)
+        x, y = self.X_grid[maxGrididx]
+        maxMu = np.amax(self.mu)
+        print("Maximal point found is %lf at [%lf %lf]" % (maxMu, x, y))
+
+
+
     def learn(self):
         grid_idx = self.argmax_ucb()
         self.sample(self.X_grid[grid_idx])
@@ -46,9 +54,10 @@ class GPUCB(object):
         # print(self.mu)
         #  print(self.mu - prevMu)
 
-    def sample(self, x):
+    def sample(self, x, printSampled=True):
         t = self.environment.sample(x)
-        print("(python) Sampled: [%lf %lf], result: %lf" % (x[0], x[1], t))
+        if printSampled:
+            print("(python) Sampled: [%lf %lf], result: %lf" % (x[0], x[1], t))
         self.X.append(x)
         self.T.append(t)
 
@@ -83,6 +92,7 @@ if __name__ == '__main__':
     for i in range(nIter):
         agent.learn()
         # agent.plot()
+    agent.max_point()
     np.savetxt("reference_output.txt", agent.mu.reshape(agent.meshgrid[0].shape), fmt='%.5f', delimiter=',')
     np.savetxt("reference_variance.txt", agent.sigma.reshape(agent.meshgrid[0].shape), fmt='%.5f', delimiter=',')
     np.savetxt("sampler_output.txt", agent.environment.sample(agent.meshgrid), fmt='%   .5f', delimiter=',')
