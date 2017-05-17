@@ -44,6 +44,8 @@ int main () {
     int i;
     perf_init ();
     // warm up the cache
+
+    
     for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
     cycles_count_start();
     for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);;
