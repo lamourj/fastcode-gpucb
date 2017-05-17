@@ -3,7 +3,7 @@
 #gcc -Wall -O3 -fno-tree-vectorize -I/usr/local/include -c src/main.c -o src/main.o
 #gcc -O3 -fno-tree-vectorize -L/usr/local/lib -lgsl -lgslcblas src/main.o
 
-gcc -O3 src/main.c src/main.h src/gpucb.c src/gpucb.h src/mathHelpers.c src/mathHelpers.h
+gcc -O3 src/main.c src/main.h src/gpucb1.c src/mathHelpers1.c
 ./a.out
 
 python3 reference_gpucb.py

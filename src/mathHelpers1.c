@@ -1,6 +1,5 @@
 // This version uses the incremental cholesky factorization.
 
-#include "mathHelpers.h"
 #include <math.h>
 
 
@@ -41,7 +40,7 @@ void cholesky(double *A, int n, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky(float *A, int n1, int n2, int size) {
+void incremental_cholesky(double *A, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
@@ -115,37 +114,39 @@ void transpose(double *M, double *M_T, int d) {
 }
 
 
-void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(double *, double *, double *, double *),
-                   double *mu,
-                   double *sigma, int n) {
+void gp_regression(double   *X_grid,
+                   double   *K,
+                   double   *L_T,
+                   int      *X,
+                   double   *T,
+                   int      t,
+                   int      maxIter,
+                   double   (*kernel)(double *, double *, double *, double *),
+                   double   *mu,
+                   double   *sigma,
+                   int      n) {
     int t_gp = t + 1;
-    // double L[t_gp * t_gp];
-    double L_T[t_gp * t_gp];
-    double K[t_gp * t_gp];
 
-    // Build the K matrix
-    for (int i = 0; i < t_gp; i++) {
-        for (int j = 0; j < t_gp; j++) {
-            int x1 = X[2 * i];
-            int y1 = X[2 * i + 1];
-            int x2 = X[2 * j];
-            int y2 = X[2 * j + 1];
+    // extend the K matrix
+    int i = t_gp - 1;
+    for (int j = 0; j < t_gp; j++) {
+        int x1 = X[2 * i];
+        int y1 = X[2 * i + 1];
+        int x2 = X[2 * j];
+        int y2 = X[2 * j + 1];
 
-            K[i * t_gp + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
-                                        &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
-            // K is symmetric, shouldn't go through all entries when optimizing
+        K[i * maxIter + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
+                                    &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
+        // K is symmetric, shouldn't go through all entries when optimizing
 
-            /*printf("t_gp: %d, x0: %lf, y0: %lf, x1: %lf, y1: %lf, k: %lf, ki:%d \n", t_gp, X_grid[x1 * 2 * n + 2 * y1],
-                   X_grid[x1 * 2 * n + 2 * y1 + 1], X_grid[x2 * 2 * n + 2 * y2], X_grid[x2 * 2 * n + 2 * y2 + 1],
-                   K[i * t_gp + j], i * t_gp + j);*/
-        }
-        //printf("\n");
+        /*printf("t_gp: %d, x0: %lf, y0: %lf, x1: %lf, y1: %lf, k: %lf, ki:%d \n", t_gp, X_grid[x1 * 2 * n + 2 * y1],
+               X_grid[x1 * 2 * n + 2 * y1 + 1], X_grid[x2 * 2 * n + 2 * y2], X_grid[x2 * 2 * n + 2 * y2 + 1],
+               K[i * t_gp + j], i * t_gp + j);*/
     }
 
-    // 2. Cholesky
-    cholesky(K, t_gp, t_gp);
 
-    double *L = K;
+    // 2. Cholesky
+    incremental_cholesky(K, t_gp - 1, t_gp, maxIter);
 
     // 3. Compute alpha
     double x[t_gp];
@@ -153,9 +154,9 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     double v[t_gp];
 
 
-    cholesky_solve2(t_gp, L, T, x, 1);
+    cholesky_solve2(t_gp, K, T, x, 1);
 
-    transpose(L, L_T, t_gp); // TODO: Maybe do this more efficient
+    transpose(K, L_T, t_gp); // TODO: Maybe do this more efficient
     cholesky_solve2(t_gp, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
@@ -185,7 +186,7 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
             mu[i * n + j] = f_star;
             //printf("fstar is: %lf", f_star);
             //printf("write in mu at %d \n", i*n+j);
-            cholesky_solve2(t_gp, L, k_star, v, 1);
+            cholesky_solve2(t_gp, K, k_star, v, 1);
             //printf("loop solve done\n");
 
             double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);

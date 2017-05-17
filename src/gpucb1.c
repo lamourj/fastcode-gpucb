@@ -1,7 +1,5 @@
 // This version includes the incremental cholesky factorization.
-
-#include "gpucb.h"
-#include "mathHelpers.h"
+#include "mathHelpers1.c"
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
@@ -13,8 +11,19 @@ double function(double x, double y) {
     return t;
 }
 
-void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, double *sigma,
-           double(*kernel)(double *, double *, double *, double *), double beta, int n) {
+void learn(double *X_grid,
+           double *K,
+           double *L_T,
+           bool *sampled,
+           int *X,
+           double *T,
+           int t,
+           int maxIter,
+           double *mu,
+           double *sigma,
+           double(*kernel)(double *, double *, double *, double *),
+           double beta,
+           int n) {
     /*
      * grid_idx = self.argmax_ucb()
     *  self.sample(self.X_grid[grid_idx])
@@ -51,7 +60,7 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
     T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
+    gp_regression(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
 }
 
 double kernel2(double *x1, double *y1, double *x2, double *y2) {
@@ -73,22 +82,33 @@ void initialize_meshgrid(double *X_grid, int n, double min, double inc) {
     }
 }
 
-void gpucb_initialized(int maxIter, int n, double *T, int *X, double *X_grid, bool *sampled, double *mu, double *sigma,
-                       double beta) {
+void gpucb_initialized(double *X_grid,
+                       double *K,
+                       double *L_T,
+                       bool *sampled,
+                       int *X,
+                       double *T,
+                       int maxIter,
+                       double *mu,
+                       double *sigma,
+                       double beta,
+                       int n) {
     for (int t = 0; t < maxIter; t++) {
-        learn(X_grid, sampled, X, T, t, mu, sigma, kernel2, beta, n);
+        learn(X_grid, K, L_T, sampled, X, T, t, maxIter, mu, sigma, kernel2, beta, n);
     }
 }
 
 int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
 
     // Allocations
-    double T[maxIter];
-    int X[2 * maxIter];
-    double X_grid[2 * n * n];
-    bool sampled[n * n];
-    double mu[n * n];
-    double sigma[n * n];
+    double       mu[n * n];
+    double       sigma[n * n];
+    double       X_grid[2 * n * n];
+    double       K[maxIter * maxIter];
+    double       L_T[maxIter * maxIter];
+    double       T[maxIter];
+    int          X[2 * maxIter];
+    bool         sampled[n * n];
     const double beta = 100;
 
     // Initializations
@@ -104,7 +124,7 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
     //                  Done with initializations
     // -------------------------------------------------------------
 
-    gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    gpucb_initialized(X_grid, K, L_T, sampled, X, T, maxIter, mu, sigma, beta, n);
 
     // -------------------------------------------------------------
     //           Done with gpucb; rest is output writing
