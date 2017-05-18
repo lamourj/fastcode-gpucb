@@ -6,6 +6,8 @@
 
 void cholesky_baseline(double *A, int n, int size);
 
+void incremental_cholesky_baseline(float *A, int n1, int n2, int size);
+
 void Crout_baseline(int d, double *S, double *D);
 
 void solveCrout_baseline(int d, double *LU, double *b, double *x);

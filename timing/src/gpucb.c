@@ -9,7 +9,7 @@
 double function_baseline(double x, double y) {
     // double t = sin(x) + cos(y);
     double t = -pow(x, 2) - pow(y, 2);
-    printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
+    // printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
 }
 

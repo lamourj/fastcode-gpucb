@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <float.h>
 #include "perf.h"
-#include "gpucb.h"
 #include "gpucb2.h"
+#include "gpucb.h"
+
 
 #define N 1000
 
@@ -38,7 +39,7 @@ int main() {
     }
 
 
-    initialize_meshgrid(X_grid, n, grid_min, grid_inc);
+    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
 
 
     int i;
@@ -57,9 +58,7 @@ int main() {
         mu[i] = 0;
         sigma[i] = 0.5;
     }
-    initialize_meshgrid(X_grid, n, grid_min, grid_inc);
-
-
+    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
     // warm up the cache
     for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
 

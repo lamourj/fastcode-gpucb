@@ -41,7 +41,7 @@ void cholesky_baseline(double *A, int n, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky(float *A, int n1, int n2, int size) {
+void incremental_cholesky_baseline(float *A, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
