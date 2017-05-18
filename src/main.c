@@ -44,6 +44,25 @@ int main(int argc, char *argv[]) {
     // initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
     // Then call gpucb_initialized with appropriate arguments (signature changed).
 
+    // Find maximum point:
+    int maxI = 0;
+    int maxJ = 0;
+    double max = mu[0];
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            double currentValue = mu[i * n + j];
+            if (currentValue > max) {
+                max = currentValue;
+                maxI = i;
+                maxJ = j;
+            }
+        }
+    }
+    double maxX = X_grid[maxI * 2 * n + 2 * maxJ];
+    double maxY = X_grid[maxI * 2 * n + 2 * maxJ + 1];
+    printf("\nMaximal point found by C code is %f at [%f %f]\n\n", max, maxX, maxY);
+
     // Save output to file:
     if (true) {
         FILE *f = fopen("mu_c.txt", "w");

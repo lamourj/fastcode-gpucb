@@ -1,6 +1,5 @@
-//
-// Created by Julien Lamour on 17.05.17.
-//
+// This version includes the incremental cholesky factorization.
+
 #ifndef FASTCODE_GPUCB_GPUCB1_H
 #define FASTCODE_GPUCB_GPUCB1_H
 

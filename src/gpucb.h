@@ -1,6 +1,5 @@
-//
-// Created by Julien Lamour on 15.05.17.
-//
+// Baseline version.
+
 #ifndef FASTCODE_GPUCB_GPUCB_H
 #define FASTCODE_GPUCB_GPUCB_H
 

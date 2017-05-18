@@ -1,19 +1,19 @@
 // Baseline version.
 
 #include "gpucb.h"
-#include "mathHelpers.h"
+#include "mathHelpers2.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
 
-double function_baseline(double x, double y) {
+double function(double x, double y) {
     // double t = sin(x) + cos(y);
     double t = -pow(x, 2) - pow(y, 2);
-    printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
+    // printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
 }
 
-void learn_baseline(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, double *sigma,
+void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, double *sigma,
                     double(*kernel)(double *, double *, double *, double *), double beta, int n) {
     /*
      * grid_idx = self.argmax_ucb()
@@ -23,13 +23,15 @@ void learn_baseline(double *X_grid, bool *sampled, int *X, double *T, int t, dou
     *  gp.fit(self.X, self.T)
     *  mu1 = self.mu
      */
-    bool debug = true;
     int maxI = 0;
     int maxJ = 0;
     double max = mu[0] + sqrt(beta) * sigma[0];
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            double currentValue = mu[i * n + j] + sqrt(beta) * sigma[i * n + j];
+    int inj = 0;
+    int i, j;
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < n; j++) {
+            double currentValue = mu[inj] + sqrt(beta) * sigma[inj];
+
             /*
             double x = X_grid[i * 2 * n + 2 * j];
             double y = X_grid[i * 2 * n + 2 * j + 1];
@@ -39,28 +41,42 @@ void learn_baseline(double *X_grid, bool *sampled, int *X, double *T, int t, dou
                        currentValue, sampled[i * n + j]);
             }
              */
-            if (currentValue > max && !sampled[i * n + j]) {
+            if (currentValue > max && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
                 max = currentValue;
                 maxI = i;
                 maxJ = j;
             }
+            inj++;
         }
     }
 
-    X[2 * t] = maxI;
-    X[2 * t + 1] = maxJ;
-    sampled[maxI * n + maxJ] = true;
-    T[t] = function_baseline(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression_baseline(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
+    const int t2 = 2 * t;
+    X[t2] = maxI;
+    X[t2 + 1] = maxJ;
+    const int maxInmaxJ = maxI * n + maxJ;
+    sampled[maxInmaxJ] = true;
+    const int maxInmaxJ2 = 2 * maxInmaxJ;
+    T[t] = function(X_grid[maxInmaxJ2], X_grid[maxInmaxJ2 + 1]);
+    gp_regression(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
 }
 
-double kernel2_baseline(double *x1, double *y1, double *x2, double *y2) {
+double kernel2(double *x1, double *y1, double *x2, double *y2) {
     // RBF kernel
     double sigma = 1;
-    return exp(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
+    const double x1_x2 = *x1 - *x2;
+    const double y1_y2 = *y1 - *y2;
+    const double x1212 = x1_x2 * x1_x2;
+    const double y1212 = y1_y2 * y1_y2;
+    const double numerator = x1212 + y1212;
+    const double arg = numerator / 2;
+    const double negArg = -arg;
+    
+    // return exp(-(x1212 + y1212) / (2 * sigma * sigma));
+    return exp(negArg);
 }
 
-void initialize_meshgrid_baseline(double *X_grid, int n, double min, double inc) {
+// Not timed... doesn't have to be optimized at the moment.
+void initialize_meshgrid(double *X_grid, int n, double min, double inc) {
     double x = min;
     for (int i = 0; i < n; i++) {
         double y = min;
@@ -73,7 +89,7 @@ void initialize_meshgrid_baseline(double *X_grid, int n, double min, double inc)
     }
 }
 
-void gpucb_initialized_baseline(int maxIter,
+void gpucb_initialized(int maxIter,
                                 int n,
                                 double *T,
                                 int *X,
@@ -83,11 +99,11 @@ void gpucb_initialized_baseline(int maxIter,
                                 double *sigma,
                                 double beta) {
     for (int t = 0; t < maxIter; t++) {
-        learn_baseline(X_grid, sampled, X, T, t, mu, sigma, kernel2_baseline, beta, n);
+        learn(X_grid, sampled, X, T, t, mu, sigma, kernel2, beta, n);
     }
 }
 
-int gpucb_baseline(int maxIter, int n, double grid_min, double grid_inc) {
+int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
 
     // Allocations
     double T[maxIter];
@@ -104,14 +120,14 @@ int gpucb_baseline(int maxIter, int n, double grid_min, double grid_inc) {
         mu[i] = 0;
         sigma[i] = 0.5;
     }
-    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
+    initialize_meshgrid(X_grid, n, grid_min, grid_inc);
 
 
     // -------------------------------------------------------------
     //                  Done with initializations
     // -------------------------------------------------------------
 
-    gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
 
     // -------------------------------------------------------------
     //           Done with gpucb; rest is output writing

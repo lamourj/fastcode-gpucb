@@ -1,6 +1,6 @@
-// This version uses the incremental cholesky factorization.
+// Non-vector optimizations
 
-#include "mathHelpers1.h"
+#include "mathHelpers2.h"
 #include <math.h>
 
 
@@ -12,21 +12,32 @@
     size: The actual size of the rows
  */
 void cholesky(double *A, int n, int size) {
-    for (int i = 0; i < n; ++i) {
+    int i, j, k;
 
+    for (i = 0; i < n; ++i) {
         // Update the off diagonal entries first.
-        for (int j = 0; j < i; ++j) {
-            for (int k = 0; k < j; ++k) {
-                A[size * i + j] -= A[size * i + k] * A[size * j + k];
+        const int sizei = size * i;
+        for (j = 0; j < i; ++j) {
+            const int sizej = size * j;
+            const int sizeij = sizei + j;
+
+            double A_sizeij = A[sizeij];
+            for (k = 0; k < j; ++k) {
+                const double aikajk = A[sizei + k] * A[sizej + k];
+                A_sizeij -= aikajk;
             }
-            A[size * i + j] /= A[size * j + j];
+            A_sizeij /= A[sizej + j];
+            A[sizeij] = A_sizeij;
         }
 
         // Update the diagonal entry of this row.
-        for (int k = 0; k < i; ++k) {
-            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+        const int sizeii = sizei + i;
+        double A_sizeii = A[sizeii];
+        for (k = 0; k < i; ++k) {
+            A_sizeii -= A[sizei + k] * A[sizei + k];
         }
-        A[size * i + i] = sqrt(A[size * i + i]);
+        A_sizeii = sqrt(A_sizeii);
+        A[sizeii] = A_sizeii;
     }
 }
 
@@ -41,10 +52,11 @@ void cholesky(double *A, int n, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky(double *A, int n1, int n2, int size) {
+void incremental_cholesky(float *A, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
+
             for (int k = 0; k < j; ++k) {
                 A[size * i + j] -= A[size * i + k] * A[size * j + k];
             }
@@ -76,7 +88,12 @@ void cholesky_solve2(int d, double *LU, double *b, double *x, int lower) {
             for (int k = 0; k < i; ++k) {
                 sum += LU[i * d + k] * x[k];
             }
-            x[i] = (b[i] - sum) / LU[i * d + i];
+            const double bi = b[i];
+            const double bi_sum = bi - sum;
+            const double LUidi = LU[i * d + i];
+            const double xi = bi_sum / LUidi;
+
+            x[i] = xi;
         }
     } else {
         for (int i = d - 1; i >= 0; --i) {
@@ -84,31 +101,21 @@ void cholesky_solve2(int d, double *LU, double *b, double *x, int lower) {
             for (int k = i + 1; k < d; ++k) {
                 sum += LU[k * d + i] * x[k];
             }
-            x[i] = (b[i] - sum) / LU[i * d + i];
+            const double bi = b[i];
+            const double bi_sum = bi - sum;
+            const double LUidi = LU[i * d + i];
+            const double xi = bi_sum / LUidi;
+            x[i] = xi;
         }
     }
 
 }
 
-// Old version.
-void cholesky_solve(int d, double *LU, double *b, double *x) {
-    double y[d];
-    for (int i = 0; i < d; ++i) {
-        double sum = 0.;
-        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
-        y[i] = (b[i] - sum) / LU[i * d + i];
-    }
-    for (int i = d - 1; i >= 0; --i) {
-        double sum = 0.;
-        for (int k = i + 1; k < d; ++k)sum += LU[k * d + i] * x[k];
-        x[i] = (y[i] - sum) / LU[i * d + i];
-    }
-}
-
 
 void transpose(double *M, double *M_T, int d) {
-    for (int i = 0; i < d; ++i) {
-        for (int j = 0; j < d; ++j) {
+    int i, j;
+    for (i = 0; i < d; ++i) {
+        for (j = 0; j < d; ++j) {
             M_T[j * d + i] = M[i * d + j];
         }
     }
@@ -116,38 +123,39 @@ void transpose(double *M, double *M_T, int d) {
 
 
 void gp_regression(double *X_grid,
-                   double *K,
-                   double *L_T,
                    int *X,
                    double *T,
                    int t,
-                   int maxIter,
-                   double   (*kernel)(double *, double *, double *, double *),
+                   double(*kernel)(double *, double *, double *, double *),
                    double *mu,
                    double *sigma,
                    int n) {
-    int t_gp = t + 1;
 
-    // extend the K matrix
-    int i = t_gp - 1;
-    for (int j = 0; j < t_gp; j++) {
-        int x1 = X[2 * i];
-        int y1 = X[2 * i + 1];
-        int x2 = X[2 * j];
-        int y2 = X[2 * j + 1];
+    const int t_gp = t + 1;
+    const int t_gp_squared = t_gp * t_gp;
+    double L_T[t_gp_squared];
+    double K[t_gp_squared];
 
-        K[i * maxIter + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
-                                       &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
-        // K is symmetric, shouldn't go through all entries when optimizing
 
-        /*printf("t_gp: %d, x0: %lf, y0: %lf, x1: %lf, y1: %lf, k: %lf, ki:%d \n", t_gp, X_grid[x1 * 2 * n + 2 * y1],
-               X_grid[x1 * 2 * n + 2 * y1 + 1], X_grid[x2 * 2 * n + 2 * y2], X_grid[x2 * 2 * n + 2 * y2 + 1],
-               K[i * t_gp + j], i * t_gp + j);*/
+    int i, j;
+    // Build the K matrix
+    for (i = 0; i < t_gp; i++) {
+        for (j = 0; j < t_gp; j++) {
+            const int x1 = X[2 * i];
+            const int y1 = X[2 * i + 1];
+            const int x2 = X[2 * j];
+            const int y2 = X[2 * j + 1];
+
+            K[i * t_gp + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
+                                        &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
+            // K is symmetric, shouldn't go through all entries when optimizing
+        }
     }
 
-
     // 2. Cholesky
-    incremental_cholesky(K, t_gp - 1, t_gp, maxIter);
+    cholesky(K, t_gp, t_gp);
+
+    double *L = K;
 
     // 3. Compute alpha
     double x[t_gp];
@@ -155,26 +163,30 @@ void gp_regression(double *X_grid,
     double v[t_gp];
 
 
-    cholesky_solve2(t_gp, K, T, x, 1);
+    cholesky_solve2(t_gp, L, T, x, 1);
 
-    transpose(K, L_T, t_gp); // TODO: Maybe do this more efficient
+    transpose(L, L_T, t_gp); // TODO: Maybe do this more efficient
     cholesky_solve2(t_gp, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
-    for (int i = 0; i < n; i++) // for all points in X_grid
+    for (i = 0; i < n; i++) // for all points in X_grid
     {
-        for (int j = 0; j < n; j++) // for all points in X_grid
+        for (j = 0; j < n; j++) // for all points in X_grid
         {
-            double x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
-            double y_star = X_grid[2 * n * i + 2 * j + 1];
+            const int inj = i * n + j;
+            const int idx = 2 * inj;
+            double x_star = X_grid[idx]; // Current grid point that we are looking at
+            double y_star = X_grid[idx + 1];
             double k_star[t_gp];
 
             for (int k = 0; k < t_gp; k++) {
-                int x = X[2 * k];
-                int y = X[2 * k + 1];
-                double arg1x = X_grid[x * 2 * n + 2 * y];
-                double arg1y = X_grid[x * 2 * n + 2 * y + 1];
+                const int k2 = 2 * k;
+                const int x = X[k2];
+                const int y = X[k2 + 1];
+                const int idx2 = x * 2 * n + 2 * y;
+                const double arg1x = X_grid[idx2];
+                const double arg1y = X_grid[idx2 + 1];
                 k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
             }
 
@@ -184,19 +196,21 @@ void gp_regression(double *X_grid,
                 f_star += k_star[k] * alpha[k];
             }
 
-            mu[i * n + j] = f_star;
+            mu[inj] = f_star;
             //printf("fstar is: %lf", f_star);
             //printf("write in mu at %d \n", i*n+j);
-            cholesky_solve2(t_gp, K, k_star, v, 1);
+            cholesky_solve2(t_gp, L, k_star, v, 1);
             //printf("loop solve done\n");
 
             double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
             for (int k = 0; k < t_gp; k++) {
                 //variance -= v->data[k] * v->data[k];
-                variance -= v[k] * v[k];
+                const double vk = v[k];
+                const double vkvk = vk * vk;
+                variance -= vkvk;
             }
 
-            sigma[i * n + j] = variance;
+            sigma[inj] = variance;
 
         }
     }
