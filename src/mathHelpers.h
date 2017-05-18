@@ -1,6 +1,4 @@
-//
-// Created by Julien Lamour on 15.05.17.
-//
+// Baseline version.
 
 #ifndef FASTCODE_GPUCB_MATHHELPERS_H
 #define FASTCODE_GPUCB_MATHHELPERS_H
@@ -18,9 +16,14 @@ void cholesky_solve2_baseline(int d, double *LU, double *b, double *x, int lower
 
 void transpose_baseline(double *M, double *M_T, int d);
 
-void gp_regression_baseline(double *X_grid, int *X, double *T, int t, double(*kernel)(double *, double *, double *, double *),
-                   double *mu,
-                   double *sigma, int n);
+void gp_regression_baseline(double *X_grid,
+                            int *X,
+                            double *T,
+                            int t,
+                            double(*kernel)(double *, double *, double *, double *),
+                            double *mu,
+                            double *sigma,
+                            int n);
 
 
 #endif //FASTCODE_GPUCB_MATHHELPERS_H

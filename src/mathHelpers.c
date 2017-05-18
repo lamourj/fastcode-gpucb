@@ -1,6 +1,4 @@
-//
-// Created by Julien Lamour on 15.05.17.
-//
+// Baseline version.
 
 #include "mathHelpers.h"
 #include <math.h>
@@ -117,12 +115,15 @@ void transpose_baseline(double *M, double *M_T, int d) {
 }
 
 
-void gp_regression_baseline(double *X_grid, int *X, double *T, int t,
+void gp_regression_baseline(double *X_grid,
+                            int *X,
+                            double *T,
+                            int t,
                             double(*kernel)(double *, double *, double *, double *),
                             double *mu,
-                            double *sigma, int n) {
+                            double *sigma,
+                            int n) {
     int t_gp = t + 1;
-    // double L[t_gp * t_gp];
     double L_T[t_gp * t_gp];
     double K[t_gp * t_gp];
 

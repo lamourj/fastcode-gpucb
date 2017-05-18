@@ -1,9 +1,8 @@
-//
-// Created by Julien Lamour on 15.05.17.
-//
+// Baseline version.
 
 #include "mathHelpers.h"
 #include <math.h>
+
 
 /*
  Straightforward implementation of inplace Cholesky decomposition of matrix A.
@@ -12,7 +11,7 @@
     n:    The size of the data in matrix A to decompose
     size: The actual size of the rows
  */
-void cholesky(double *A, int n, int size) {
+void cholesky_baseline(double *A, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
         // Update the off diagonal entries first.
@@ -31,39 +30,33 @@ void cholesky(double *A, int n, int size) {
     }
 }
 
-// Crout uses unit diagonals for the upper triangle
-void Crout(int d, double *S, double *D) {
-    for (int k = 0; k < d; ++k) {
-        for (int i = k; i < d; ++i) {
-            double sum = 0.;
-            for (int p = 0; p < k; ++p)sum += D[i * d + p] * D[p * d + k];
-            D[i * d + k] = S[i * d + k] - sum; // not dividing by diagonals
-        }
-        for (int j = k + 1; j < d; ++j) {
-            double sum = 0.;
-            for (int p = 0; p < k; ++p)sum += D[k * d + p] * D[p * d + j];
-            D[k * d + j] = (S[k * d + j] - sum) / D[k * d + k];
-        }
-    }
-}
+/*
+ Incremental implementation of Cholesky decomposition:
+ The matrix contains a Cholesky decomposition until row n1,
+ rows n1, to n2 are new data.
+ Input arguments:
+    A:    Partially decomposed matrix with new data from row n1, to n2
+    n1:   Start of the new data
+    n2:   End of the new data
+    size: The actual size of the rows
 
-void solveCrout(int d, double *LU, double *b, double *x) {
-    double y[d];
-    for (int i = 0; i < d; ++i) {
-        double sum = 0.;
-        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
-        y[i] = (b[i] - sum) / LU[i * d + i];
+ */
+void incremental_cholesky(float *A, int n1, int n2, int size) {
+    for (int i = n1; i < n2; ++i) {
+        // Update the off diagonal entries.
+        for (int j = 0; j < i; ++j) {
+            for (int k = 0; k < j; ++k) {
+                A[size * i + j] -= A[size * i + k] * A[size * j + k];
+            }
+            A[size * i + j] /= A[size * j + j];
+        }
+        // Update the diagonal entry.
+        for (int k = 0; k < i; ++k) {
+            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+        }
+        A[size * i + i] = sqrtf(A[size * i + i]);
     }
-    for (int i = d - 1; i >= 0; --i) {
-        double sum = 0.;
-        for (int k = i + 1; k < d; ++k)sum += LU[i * d + k] * x[k];
-        x[i] = (y[i] - sum); // not dividing by diagonals
-    }
-}
 
-void solve(double *A, double *b, int n, double *x) {
-    Crout(n, A, A);
-    solveCrout(n, A, b, x);
 }
 
 
@@ -76,7 +69,7 @@ void solve(double *A, double *b, int n, double *x) {
  *      x: vector to put result in
  *      lower: if one the lower triangle system is solved, else the upper triangle system is solved.
 */
-void cholesky_solve2(int d, double *LU, double *b, double *x, int lower) {
+void cholesky_solve2_baseline(int d, double *LU, double *b, double *x, int lower) {
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
             double sum = 0.;
@@ -97,8 +90,23 @@ void cholesky_solve2(int d, double *LU, double *b, double *x, int lower) {
 
 }
 
+// Old version.
+void cholesky_solve_baseline(int d, double *LU, double *b, double *x) {
+    double y[d];
+    for (int i = 0; i < d; ++i) {
+        double sum = 0.;
+        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
+        y[i] = (b[i] - sum) / LU[i * d + i];
+    }
+    for (int i = d - 1; i >= 0; --i) {
+        double sum = 0.;
+        for (int k = i + 1; k < d; ++k)sum += LU[k * d + i] * x[k];
+        x[i] = (y[i] - sum) / LU[i * d + i];
+    }
+}
 
-void transpose(double *M, double *M_T, int d) {
+
+void transpose_baseline(double *M, double *M_T, int d) {
     for (int i = 0; i < d; ++i) {
         for (int j = 0; j < d; ++j) {
             M_T[j * d + i] = M[i * d + j];
@@ -107,11 +115,15 @@ void transpose(double *M, double *M_T, int d) {
 }
 
 
-void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(double *, double *, double *, double *),
-                   double *mu,
-                   double *sigma, int n) {
+void gp_regression_baseline(double *X_grid,
+                            int *X,
+                            double *T,
+                            int t,
+                            double(*kernel)(double *, double *, double *, double *),
+                            double *mu,
+                            double *sigma,
+                            int n) {
     int t_gp = t + 1;
-    // double L[t_gp * t_gp];
     double L_T[t_gp * t_gp];
     double K[t_gp * t_gp];
 
@@ -135,28 +147,7 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     }
 
     // 2. Cholesky
-    cholesky(K, t_gp, t_gp);
-
-//    printf("Kernel matrix:\n");
-//    for(int i = 0; i < t_gp; i++){
-//        for(int j = 0; j < t_gp; j++){
-//            printf("%lf ", K[i * t_gp + j]);
-//        }
-//        printf("\n");
-//    }
-
-//    for (int i = 0; i < t_gp - 1; i++) {
-//        for (int j = i + 1; j < t_gp; j++) {
-//            K[i * t_gp + j] = 0; //FIXME do we need that ? NO
-//        }
-//    }
-
-//    for(int i = 0; i < t_gp; i++){
-//        for(int j = 0; j < t_gp;j++){
-//            printf("%lf ",K[i*t_gp+j]);
-//        }
-//        printf("\n");
-//    }
+    cholesky_baseline(K, t_gp, t_gp);
 
     double *L = K;
 
@@ -166,10 +157,10 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
     double v[t_gp];
 
 
-    cholesky_solve2(t_gp, L, T, x, 1);
+    cholesky_solve2_baseline(t_gp, L, T, x, 1);
 
-    transpose(L, L_T, t_gp); // TODO: Maybe do this more efficient
-    cholesky_solve2(t_gp, L_T, x, alpha, 0);
+    transpose_baseline(L, L_T, t_gp); // TODO: Maybe do this more efficient
+    cholesky_solve2_baseline(t_gp, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
@@ -198,9 +189,7 @@ void gp_regression(double *X_grid, int *X, double *T, int t, double(*kernel)(dou
             mu[i * n + j] = f_star;
             //printf("fstar is: %lf", f_star);
             //printf("write in mu at %d \n", i*n+j);
-            //gsl_vector_view k_star_view = gsl_vector_view_array(k_star, t_gp);
-            //cholesky_solve(L_view, k_star_view, v);
-            cholesky_solve2(t_gp, L, k_star, v, 1);
+            cholesky_solve2_baseline(t_gp, L, k_star, v, 1);
             //printf("loop solve done\n");
 
             double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);

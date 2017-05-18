@@ -6,14 +6,14 @@
 #include <float.h>
 #include "perf.h"
 #include "gpucb.h"
+#include "gpucb2.h"
 
 #define N 1000
 
 
+int main() {
 
-int main () {
-    
-    uint64_t cycles_gpucb;
+    uint64_t cycles_gpucb_baseline, cycles_gpucb_optimized;
 
     // Execution variables
     const int n = 24; // Meshgrid size
@@ -42,24 +42,41 @@ int main () {
 
 
     int i;
-    perf_init ();
-    // warm up the cache
+    perf_init();
 
-    
-    for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    // warm up the cache
+    for (i = 0; i < N; i += 1) gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+
     cycles_count_start();
-    for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);;
-    cycles_gpucb = cycles_count_stop();
+    for (i = 0; i < N; i += 1) gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    cycles_gpucb_baseline = cycles_count_stop();
+
+    // Re-initialize matrices
+    for (int i = 0; i < n * n; i++) {
+        sampled[i] = false;
+        mu[i] = 0;
+        sigma[i] = 0.5;
+    }
+    initialize_meshgrid(X_grid, n, grid_min, grid_inc);
+
+
+    // warm up the cache
+    for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+
+    cycles_count_start();
+    for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    cycles_gpucb_optimized = cycles_count_stop();
 
     perf_done();
-    printf("gpucb baseline: %lf cycles\n", (double) cycles_gpucb / N);
 
-    printf("gpucb version 1: Let's write it first :-)");
+    printf("gpucb baseline: %lf cycles\n", (double) cycles_gpucb_baseline / N);
+    printf("gpucb version 1: %lf cycles\n", (double) cycles_gpucb_optimized / N);
+    printf("Speedup: %lf\n", (double) cycles_gpucb_baseline / cycles_gpucb_optimized);
 
-    
+
     // Save output to file:
-    if(true) {
-        FILE *f = fopen("mu_timed.txt", "w");
+    if (false) {
+        FILE *f = fopen("mu_c.txt", "w");
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 fprintf(f, "%lf, ", mu[i * n + j]);

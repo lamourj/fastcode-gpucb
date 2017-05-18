@@ -1,18 +1,20 @@
+// Baseline version.
+
 #include "gpucb.h"
 #include "mathHelpers.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
 
-double function(double x, double y) {
+double function_baseline(double x, double y) {
     // double t = sin(x) + cos(y);
     double t = -pow(x, 2) - pow(y, 2);
-    // printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
+    printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
 }
 
-void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, double *sigma,
-           double(*kernel)(double *, double *, double *, double *), double beta, int n) {
+void learn_baseline(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, double *sigma,
+                    double(*kernel)(double *, double *, double *, double *), double beta, int n) {
     /*
      * grid_idx = self.argmax_ucb()
     *  self.sample(self.X_grid[grid_idx])
@@ -48,17 +50,17 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
-    T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
+    T[t] = function_baseline(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
+    gp_regression_baseline(X_grid, X, T, t, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
 }
 
-double kernel2(double *x1, double *y1, double *x2, double *y2) {
+double kernel2_baseline(double *x1, double *y1, double *x2, double *y2) {
     // RBF kernel
     double sigma = 1;
     return exp(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
 }
 
-void initialize_meshgrid(double *X_grid, int n, double min, double inc) {
+void initialize_meshgrid_baseline(double *X_grid, int n, double min, double inc) {
     double x = min;
     for (int i = 0; i < n; i++) {
         double y = min;
@@ -71,14 +73,21 @@ void initialize_meshgrid(double *X_grid, int n, double min, double inc) {
     }
 }
 
-int gpucb_initialized(int maxIter, int n, double *T, int *X, double *X_grid, bool *sampled, double *mu, double *sigma,
-                      double beta) {
+void gpucb_initialized_baseline(int maxIter,
+                                int n,
+                                double *T,
+                                int *X,
+                                double *X_grid,
+                                bool *sampled,
+                                double *mu,
+                                double *sigma,
+                                double beta) {
     for (int t = 0; t < maxIter; t++) {
-        learn(X_grid, sampled, X, T, t, mu, sigma, kernel2, beta, n);
+        learn_baseline(X_grid, sampled, X, T, t, mu, sigma, kernel2_baseline, beta, n);
     }
 }
 
-int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
+int gpucb_baseline(int maxIter, int n, double grid_min, double grid_inc) {
 
     // Allocations
     double T[maxIter];
@@ -95,14 +104,14 @@ int gpucb(int maxIter, int n, double grid_min, double grid_inc) {
         mu[i] = 0;
         sigma[i] = 0.5;
     }
-    initialize_meshgrid(X_grid, n, grid_min, grid_inc);
+    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
 
 
     // -------------------------------------------------------------
     //                  Done with initializations
     // -------------------------------------------------------------
 
-    gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
 
     // -------------------------------------------------------------
     //           Done with gpucb; rest is output writing
