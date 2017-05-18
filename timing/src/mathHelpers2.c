@@ -137,18 +137,100 @@ void gp_regression(double *X_grid,
     double K[t_gp_squared];
 
 
-    int i, j;
+    int i, j, j2;
+    int i2 = 0;
+    int itgpj = 0;
+    const int n2 = 2 * n;
+    const int jUnrolling = 4;
+    const int jUnrolling_1 = jUnrolling - 1;
+    const int tgpUnrolling = (t_gp / jUnrolling) * jUnrolling;
     // Build the K matrix
-    for (i = 0; i < t_gp; i++) {
-        for (j = 0; j < t_gp; j++) {
-            const int x1 = X[2 * i];
-            const int y1 = X[2 * i + 1];
-            const int x2 = X[2 * j];
-            const int y2 = X[2 * j + 1];
 
-            K[i * t_gp + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
-                                        &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
-            // K is symmetric, shouldn't go through all entries when optimizing
+    // TODO: i, j blocking.
+    if(t_gp >= jUnrolling) {
+        for (i = 0; i < t_gp; i++) {
+            j2 = 0;
+            for (j = 0; j + jUnrolling_1 < t_gp; j+=jUnrolling) {
+                // Unrolled by 4: allows vectorization easily.
+                const int x10 = X[i2];
+                const int y10 = X[i2 + 1];
+                const int x20 = X[j2];
+                const int y20 = X[j2 + 1];
+                const int idx10 = x10 * n2 + 2 * y10;
+                const int idx20 = x20 * n2 + 2 * y20;
+                K[itgpj] = (*kernel)(&X_grid[idx10], &X_grid[idx10 + 1],
+                                            &X_grid[idx20], &X_grid[idx20 + 1]);
+                // K is symmetric, shouldn't go through all entries when optimizing
+                j2 += 2;
+                itgpj += 1;
+                const int x11 = X[i2];
+                const int y11 = X[i2 + 1];
+                const int x21 = X[j2];
+                const int y21 = X[j2 + 1];
+                const int idx11 = x11 * n2 + 2 * y11;
+                const int idx21 = x21 * n2 + 2 * y21;
+                K[itgpj] = (*kernel)(&X_grid[idx11], &X_grid[idx11 + 1],
+                                            &X_grid[idx21], &X_grid[idx21 + 1]);
+                // K is symmetric, shouldn't go through all entries when optimizing
+                j2 += 2;
+                itgpj += 1;
+
+                const int x12 = X[i2];
+                const int y12 = X[i2 + 1];
+                const int x22 = X[j2];
+                const int y22 = X[j2 + 1];
+                const int idx12 = x12 * n2 + 2 * y12;
+                const int idx22 = x22 * n2 + 2 * y22;
+                K[itgpj] = (*kernel)(&X_grid[idx12], &X_grid[idx12 + 1],
+                                            &X_grid[idx22], &X_grid[idx22 + 1]);
+                // K is symmetric, shouldn't go through all entries when optimizing
+                j2 += 2;
+                itgpj += 1;
+                
+                const int x13 = X[i2];
+                const int y13 = X[i2 + 1];
+                const int x23 = X[j2];
+                const int y23 = X[j2 + 1];
+                const int idx13 = x13 * n2 + 2 * y13;
+                const int idx23 = x23 * n2 + 2 * y23;
+                K[itgpj] = (*kernel)(&X_grid[idx13], &X_grid[idx13 + 1],
+                                            &X_grid[idx23], &X_grid[idx23 + 1]);
+                // K is symmetric, shouldn't go through all entries when optimizing
+                j2 += 2;
+                itgpj += 1;
+            }
+            for (j = tgpUnrolling; j < t_gp; j++) {
+                const int x10 = X[i2];
+                const int y10 = X[i2 + 1];
+                const int x20 = X[j2];
+                const int y20 = X[j2 + 1];
+                const int idx10 = x10 * n2 + 2 * y10;
+                const int idx20 = x20 * n2 + 2 * y20;
+                K[itgpj] = (*kernel)(&X_grid[idx10], &X_grid[idx10 + 1],
+                                            &X_grid[idx20], &X_grid[idx20 + 1]);
+                // K is symmetric, shouldn't go through all entries when optimizing
+                j2 += 2;
+                itgpj += 1;
+            }
+            i2 += 2;
+        }
+    } else {
+        for (i = 0; i < t_gp; i++) {
+            j2 = 0;
+            for (j = 0; j < t_gp; j++) {
+                const int x10 = X[i2];
+                const int y10 = X[i2 + 1];
+                const int x20 = X[j2];
+                const int y20 = X[j2 + 1];
+                const int idx10 = x10 * n2 + 2 * y10;
+                const int idx20 = x20 * n2 + 2 * y20;
+                K[itgpj] = (*kernel)(&X_grid[idx10], &X_grid[idx10 + 1],
+                                            &X_grid[idx20], &X_grid[idx20 + 1]);
+                // K is symmetric, shouldn't go through all entries when optimizing
+                j2 += 2;
+                itgpj += 1;
+            }
+            i2 += 2;
         }
     }
 
@@ -170,21 +252,22 @@ void gp_regression(double *X_grid,
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
+    int inj = 0;
     for (i = 0; i < n; i++) // for all points in X_grid
     {
         for (j = 0; j < n; j++) // for all points in X_grid
         {
-            const int inj = i * n + j;
+            // const int inj = in + j;
             const int idx = 2 * inj;
             double x_star = X_grid[idx]; // Current grid point that we are looking at
             double y_star = X_grid[idx + 1];
             double k_star[t_gp];
-
+            
             for (int k = 0; k < t_gp; k++) {
                 const int k2 = 2 * k;
                 const int x = X[k2];
                 const int y = X[k2 + 1];
-                const int idx2 = x * 2 * n + 2 * y;
+                const int idx2 = x * n2 + 2 * y;
                 const double arg1x = X_grid[idx2];
                 const double arg1y = X_grid[idx2 + 1];
                 k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
@@ -211,7 +294,7 @@ void gp_regression(double *X_grid,
             }
 
             sigma[inj] = variance;
-
+            inj += 1;
         }
     }
 }
