@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <float.h>
-#include "gpucb.h" // CHANGE TO gpucb1.h for newer version
+#include "gpucb1.h" // CHANGE TO gpucb1.h for newer version
 
 int main(int argc, char *argv[]) {
     // Execution variables
@@ -35,14 +35,31 @@ int main(int argc, char *argv[]) {
 
     // -------------------------------------------------------------------------------
     //                          OLD VERSION
-    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
-    gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    //initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
+    //gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
     // -------------------------------------------------------------------------------
 
 
-    // For new version, call this:
-    // initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
-    // Then call gpucb_initialized with appropriate arguments (signature changed).
+//    // For new version, call this:
+    double K[maxIter*maxIter];
+    double L[maxIter*maxIter];
+    initialize_meshgrid(X_grid, n, grid_min, grid_inc);
+    gpucb_initialized(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
+    printf("the final K matrix\n");
+    for (int k=0; k<maxIter; ++k) {
+        for (int kk=0; kk<maxIter; ++kk) {
+            printf("%lf ", 1000000*K[maxIter*k + kk]);
+        }
+        printf("\n");
+    }
+
+    printf("the final L_T matrix\n");
+    for (int k=0; k<maxIter; ++k) {
+        for (int kk=0; kk<maxIter; ++kk) {
+            printf("%lf ", 1000000*L[maxIter*k + kk]);
+        }
+        printf("\n");
+    }
 
     // Find maximum point:
     int maxI = 0;
