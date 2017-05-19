@@ -2,6 +2,7 @@
 
 #include "mathHelpers1.h"
 #include <math.h>
+#include <stdio.h>
 
 
 /*
@@ -64,27 +65,28 @@ void incremental_cholesky(double *A, int n1, int n2, int size) {
  * Solver for a matrix that is in Cholesky decomposition.
  * Input arguments:
  *      d: dimension of matrix
+ *      size: the actual size of the matrix
  *      LU: matrix
  *      b: right hand side
  *      x: vector to put result in
  *      lower: if one the lower triangle system is solved, else the upper triangle system is solved.
 */
-void cholesky_solve2(int d, double *LU, double *b, double *x, int lower) {
+void cholesky_solve2(int d, int size, double *LU, double *b, double *x, int lower) {
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
             double sum = 0.;
             for (int k = 0; k < i; ++k) {
-                sum += LU[i * d + k] * x[k];
+                sum += LU[i * size + k] * x[k];
             }
-            x[i] = (b[i] - sum) / LU[i * d + i];
+            x[i] = (b[i] - sum) / LU[i * size + i];
         }
     } else {
         for (int i = d - 1; i >= 0; --i) {
             double sum = 0.;
             for (int k = i + 1; k < d; ++k) {
-                sum += LU[k * d + i] * x[k];
+                sum += LU[i * size + k] * x[k];
             }
-            x[i] = (b[i] - sum) / LU[i * d + i];
+            x[i] = (b[i] - sum) / LU[i * size + i];
         }
     }
 
@@ -106,10 +108,10 @@ void cholesky_solve(int d, double *LU, double *b, double *x) {
 }
 
 
-void transpose(double *M, double *M_T, int d) {
+void transpose(double *M, double *M_T, int d, int size) {
     for (int i = 0; i < d; ++i) {
         for (int j = 0; j < d; ++j) {
-            M_T[j * d + i] = M[i * d + j];
+            M_T[j * size + i] = M[i * size + j];
         }
     }
 }
@@ -155,10 +157,11 @@ void gp_regression(double *X_grid,
     double v[t_gp];
 
 
-    cholesky_solve2(t_gp, K, T, x, 1);
+    cholesky_solve2(t_gp, maxIter, K, T, x, 1);
 
-    transpose(K, L_T, t_gp); // TODO: Maybe do this more efficient
-    cholesky_solve2(t_gp, L_T, x, alpha, 0);
+    transpose(K, L_T, t_gp, maxIter); // TODO: Maybe do this more efficient
+
+    cholesky_solve2(t_gp, maxIter, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
@@ -187,7 +190,7 @@ void gp_regression(double *X_grid,
             mu[i * n + j] = f_star;
             //printf("fstar is: %lf", f_star);
             //printf("write in mu at %d \n", i*n+j);
-            cholesky_solve2(t_gp, K, k_star, v, 1);
+            cholesky_solve2(t_gp, maxIter, K, k_star, v, 1);
             //printf("loop solve done\n");
 
             double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);

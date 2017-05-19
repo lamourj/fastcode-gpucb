@@ -8,11 +8,11 @@ void cholesky(double *A, int n, int size);
 
 void incremental_cholesky(double *A, int n1, int n2, int size);
 
-void cholesky_solve2(int d, double *LU, double *b, double *x, int lower);
+void cholesky_solve2(int d, int size, double *LU, double *b, double *x, int lower);
 
 void cholesky_solve(int d, double *LU, double *b, double *x);
 
-void transpose(double *M, double *M_T, int d);
+void transpose(double *M, double *M_T, int d, int size);
 
 void gp_regression(double *X_grid,
                    double *K,

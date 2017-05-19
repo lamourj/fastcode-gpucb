@@ -7,11 +7,11 @@
 NITER=5
 
 # Use this for launching version 1 (requires changes in main):
-# gcc -O3 src/main.c src/main.h src/gpucb1.h src/gpucb1.c src/mathHelpers1.h src/mathHelpers1.c
+gcc -O3 src/main.c src/main.h src/gpucb1.h src/gpucb1.c src/mathHelpers1.h src/mathHelpers1.c
 
 
 # Use this for the baseline:
-gcc -O3 src/main.c src/main.h src/gpucb.h src/gpucb.c src/mathHelpers.h src/mathHelpers.c
+# gcc -O3 src/main.c src/main.h src/gpucb.h src/gpucb.c src/mathHelpers.h src/mathHelpers.c
 
 
 ./a.out $NITER

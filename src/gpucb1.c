@@ -50,14 +50,14 @@ void learn(double *X_grid,
                        currentValue, sampled[i * n + j]);
             }
              */
-            if (currentValue > max && !sampled[i * n + j]) {
+            if (!sampled[i * n + j] && (currentValue > max)) {
                 max = currentValue;
                 maxI = i;
                 maxJ = j;
             }
         }
     }
-
+    
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;

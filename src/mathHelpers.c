@@ -82,7 +82,7 @@ void cholesky_solve2_baseline(int d, double *LU, double *b, double *x, int lower
         for (int i = d - 1; i >= 0; --i) {
             double sum = 0.;
             for (int k = i + 1; k < d; ++k) {
-                sum += LU[k * d + i] * x[k];
+                sum += LU[i * d + k] * x[k];
             }
             x[i] = (b[i] - sum) / LU[i * d + i];
         }
