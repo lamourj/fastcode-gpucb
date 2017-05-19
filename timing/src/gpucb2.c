@@ -1,6 +1,6 @@
 // Baseline version.
 
-#include "gpucb.h"
+#include "gpucb2.h"
 #include "mathHelpers2.h"
 #include <stdio.h>
 #include <math.h>

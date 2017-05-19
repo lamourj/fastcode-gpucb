@@ -41,15 +41,7 @@ void learn(double *X_grid,
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             double currentValue = mu[i * n + j] + sqrt(beta) * sigma[i * n + j];
-            /*
-            double x = X_grid[i * 2 * n + 2 * j];
-            double y = X_grid[i * 2 * n + 2 * j + 1];
-            if (debug && (x == 0 && y == -2.25 || x == 0 && y == -2)) {
-                printf("[x, y] = [%.2lf, %.2lf], mu[xy]: %lf, sigma[xy]: %lf, cv: %lf, alreadySampled: %d\n", x, y,
-                       mu[i * n + j], sigma[i * n + j],
-                       currentValue, sampled[i * n + j]);
-            }
-             */
+
             if (!sampled[i * n + j] && (currentValue > max)) {
                 max = currentValue;
                 maxI = i;
