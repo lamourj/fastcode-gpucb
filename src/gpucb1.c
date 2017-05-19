@@ -57,7 +57,7 @@ void learn(double *X_grid,
             }
         }
     }
-    
+
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;

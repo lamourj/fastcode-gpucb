@@ -2,7 +2,6 @@
 
 #include "mathHelpers1.h"
 #include <math.h>
-#include <stdio.h>
 
 
 /*
@@ -42,7 +41,7 @@ void cholesky(double *A, int n, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky(double *A, int n1, int n2, int size) {
+void incremental_cholesky(double *A, double *A_T, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
@@ -50,12 +49,14 @@ void incremental_cholesky(double *A, int n1, int n2, int size) {
                 A[size * i + j] -= A[size * i + k] * A[size * j + k];
             }
             A[size * i + j] /= A[size * j + j];
+            A_T[size*j + i] = A[size * i + j];
         }
         // Update the diagonal entry.
         for (int k = 0; k < i; ++k) {
             A[size * i + i] -= A[size * i + k] * A[size * i + k];
         }
         A[size * i + i] = sqrtf(A[size * i + i]);
+        A_T[size*i + i] = A[size * i + i];
     }
 
 }
@@ -149,7 +150,7 @@ void gp_regression(double *X_grid,
 
 
     // 2. Cholesky
-    incremental_cholesky(K, t_gp - 1, t_gp, maxIter);
+    incremental_cholesky(K, L_T, t_gp - 1, t_gp, maxIter);
 
     // 3. Compute alpha
     double x[t_gp];
@@ -158,9 +159,6 @@ void gp_regression(double *X_grid,
 
 
     cholesky_solve2(t_gp, maxIter, K, T, x, 1);
-
-    transpose(K, L_T, t_gp, maxIter); // TODO: Maybe do this more efficient
-
     cholesky_solve2(t_gp, maxIter, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma

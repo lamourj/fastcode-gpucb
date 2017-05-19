@@ -6,7 +6,7 @@
 
 void cholesky(double *A, int n, int size);
 
-void incremental_cholesky(double *A, int n1, int n2, int size);
+void incremental_cholesky(double *A, double *A_T, int n1, int n2, int size);
 
 void cholesky_solve2(int d, int size, double *LU, double *b, double *x, int lower);
 
