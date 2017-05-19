@@ -5,11 +5,11 @@
 #include <stdio.h>
 #include <float.h>
 #include "perf.h"
-#include "gpucb2.h"
+#include "gpucb3.h"
 #include "gpucb.h"
 
 
-#define N 10
+#define N 1
 
 
 int main() {
@@ -21,6 +21,10 @@ int main() {
     const int maxIter = 20; // GP-UCB # of iterations
     const double grid_min = -4.8;
     const double grid_inc = 0.1;
+
+    if(! (n % 4 == 0)) {
+        printf("n is not divisible by 4 !!! \n");
+    }
 
     // Allocate memory
     double T[maxIter];

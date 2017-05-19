@@ -1,10 +1,11 @@
 // Baseline version.
 
 #include "gpucb.h"
-#include "mathHelpers2.h"
+#include "mathHelpers3.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
+#include <immintrin.h>
 
 double function(double x, double y) {
     // double t = sin(x) + cos(y);
@@ -25,48 +26,77 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
      */
     int maxI = 0;
     int maxJ = 0;
-    double max = mu[0] + sqrt(beta) * sigma[0];
+
+
+    double firstMax = mu[0] + sqrt(beta) * sigma[0];
     int inj = 0;
-    int i, j;
+    int i, j, zz;
     const int unrollingFactor = 4;
+    __m256d max = _mm256_set1_pd(firstMax);
+    __m256d sqrtBeta = _mm256_set1_pd(sqrt(beta));
 
     for (i = 0; i < n; i++) {
         for (j = 0; j < n; j+=unrollingFactor) {
-            double currentValue0 = mu[inj] + sqrt(beta) * sigma[inj];
+            __m256d mus = _mm256_loadu_pd(mu + inj);
+            __m256d sigmas = _mm256_loadu_pd(sigma + inj);
+            __m256d betaSigmas = _mm256_mul_pd(sqrtBeta, sigmas);
+            __m256d currentValues = _mm256_add_pd(mus, betaSigmas);
+            __m256d sampledValues = _mm256_set_pd(sampled[inj + 3], sampled[inj + 2], sampled[inj + 1], sampled[inj]);
 
-            if (currentValue0 > max && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
-                max = currentValue0;
+            __m256d compared = _mm256_cmp_pd(currentValues, max, 14); // 14 is _CMP_GT_OS
+
+            __m256d comparedAndSampled = _mm256_and_pd(compared, sampledValues);
+
+            max = _mm256_blendv_pd(max, currentValues, comparedAndSampled);
+
+            double currentValue0 = currentValues[0];
+            if (currentValue0 > firstMax && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
+                firstMax = currentValue0;
                 maxI = i;
                 maxJ = j;
             }
             inj++;
-
-            double currentValue1 = mu[inj] + sqrt(beta) * sigma[inj];
-
-            if (currentValue1 > max && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
-                max = currentValue1;
+            double currentValue1 = currentValues[1];
+            if (currentValue1 > firstMax && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
+                firstMax = currentValue1;
                 maxI = i;
                 maxJ = j+1;
             }
             inj++;
-
-            double currentValue2 = mu[inj] + sqrt(beta) * sigma[inj];
-
-            if (currentValue2 > max && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
-                max = currentValue2;
+            double currentValue2 = currentValues[2];
+            if (currentValue2 > firstMax && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
+                firstMax = currentValue2;
                 maxI = i;
                 maxJ = j+2;
             }
             inj++;
-
-            double currentValue3 = mu[inj] + sqrt(beta) * sigma[inj];
-
-            if (currentValue3 > max && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
-                max = currentValue3;
+            double currentValue3 = currentValues[3];
+            if (currentValue3 > firstMax && !sampled[inj] ) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
+                firstMax = currentValue3;
                 maxI = i;
                 maxJ = j+3;
             }
             inj++;
+
+            double maximums[4];
+            _mm256_store_pd(maximums, max);
+
+            double vectorMax = maximums[0];
+            
+            for(zz = 1; zz < 4; zz++) {
+                if(maximums[zz] > vectorMax) {
+                    vectorMax = maximums[zz];
+                } else {
+                }
+            }
+    
+
+            if(!(vectorMax == firstMax)) {
+                printf("Problemmmmmmm\n");
+            } else {
+                printf("EASY DUDE");
+            }
+
         }
     }
 
