@@ -1,5 +1,5 @@
 #!/bin/bash
 
-gcc -Wall -O3 -fno-tree-vectorize -I/usr/local/include -c cholesky.c -o cholesky.o
-gcc -O3 -fno-tree-vectorize -L/usr/local/lib -lgsl -lgslcblas cholesky.o
+gcc -Wall -O3 -fno-tree-vectorize -march=skylake -I/usr/local/include -c cholesky.c -o cholesky.o
+gcc -O3 -fno-tree-vectorize -march=skylake -L/usr/local/lib -lgsl -lgslcblas cholesky.o
 ./a.out

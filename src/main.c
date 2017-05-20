@@ -45,21 +45,6 @@ int main(int argc, char *argv[]) {
     double L[maxIter*maxIter];
     initialize_meshgrid(X_grid, n, grid_min, grid_inc);
     gpucb_initialized(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
-    printf("the final K matrix\n");
-    for (int k=0; k<maxIter; ++k) {
-        for (int kk=0; kk<maxIter; ++kk) {
-            printf("%lf ", 1000000*K[maxIter*k + kk]);
-        }
-        printf("\n");
-    }
-
-    printf("the final L_T matrix\n");
-    for (int k=0; k<maxIter; ++k) {
-        for (int kk=0; kk<maxIter; ++kk) {
-            printf("%lf ", 1000000*L[maxIter*k + kk]);
-        }
-        printf("\n");
-    }
 
     // Find maximum point:
     int maxI = 0;
