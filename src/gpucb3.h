@@ -40,4 +40,27 @@ void gpucb_initialized(double *X_grid,
 int gpucb(int maxIter, int n, double grid_min, double grid_inc);
 
 
+void cholesky(double *A, int n, int size);
+
+void incremental_cholesky(double *A, double *A_T, int n1, int n2, int size);
+
+void cholesky_solve2(int d, int size, double *LU, double *b, double *x, int lower);
+
+void cholesky_solve(int d, double *LU, double *b, double *x);
+
+void transpose(double *M, double *M_T, int d, int size);
+
+void gp_regression(double *X_grid,
+                   double *K,
+                   double *L_T,
+                   int *X,
+                   double *T,
+                   int t,
+                   int maxIter,
+                   double   (*kernel)(double *, double *, double *, double *),
+                   double *mu,
+                   double *sigma,
+                   int n);
+
+
 #endif //FASTCODE_GPUCB_GPUCB3_H

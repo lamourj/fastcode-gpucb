@@ -6,8 +6,6 @@ set(CMAKE_C_STANDARD 99)
 set(SOURCE_FILES
         src/gpucb.h
         src/gpucb.c
-        src/mathHelpers.h
-        src/mathHelpers.c
         src/main.c
         src/main.h
         )

@@ -80,8 +80,8 @@ if __name__ == '__main__':
             return -x[0] ** 2 - x[1] ** 2
 
 
-    x = np.arange(-6, 6, 0.05)
-    y = np.arange(-6, 6, 0.05)
+    x = np.arange(-6, 6, 0.025)
+    y = np.arange(-6, 6, 0.025)
     # print(np.meshgrid(x,y))
     env = DummyEnvironment()
     agent = GPUCB(np.meshgrid(x, y), env)

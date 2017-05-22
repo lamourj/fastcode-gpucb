@@ -8,7 +8,7 @@
 
 int main(int argc, char *argv[]) {
     // Execution variables
-    const int n = 500; // Meshgrid size
+    const int n = 480; // Meshgrid size
     const int maxIter = atoi(argv[1]); // GP-UCB # of iterations
 
     if (!(n % 4 == 0)) {
@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, " WARNING: maxIter>=n: maxIter=%d, n=%d", maxIter, n);
     }
 
-    const double grid_min = -5;
-    const double grid_inc = 0.02;
+    const double grid_min = -6;
+    const double grid_inc = 0.025;
 
     const double beta = 100;
 
