@@ -166,5 +166,17 @@ int main() {
         }
         fclose(f);
     }
+
+
+    free(T);
+    free(X);
+    free(X_grid);
+    free(sampled);
+    free(mu);
+    free(mu_opt);
+    free(sigma);
+    free(K);
+    free(L);
+
     return 0;
 }

@@ -93,5 +93,15 @@ int main(int argc, char *argv[]) {
         }
         fclose(f);
     }
+
+    free(T);
+    free(X);
+    free(X_grid);
+    free(sampled);
+    free(mu);
+    free(sigma);
+    free(K);
+    free(L);
+
     return 0;
 }
