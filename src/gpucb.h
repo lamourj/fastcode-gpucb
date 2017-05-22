@@ -2,8 +2,23 @@
 
 #ifndef FASTCODE_GPUCB_GPUCB_H
 #define FASTCODE_GPUCB_GPUCB_H
-
 #include <stdbool.h>
+
+double GRID_MIN_;
+double GRID_INC_;
+double BETA_;
+// Allocate memory
+double *T_;
+int *X_;
+double *X_grid_;
+bool *sampled_;
+double *mu_;
+double *sigma_;
+double *K_;
+double *L_;
+
+int I_;
+int N_;
 
 double function_baseline(double x, double y);
 
@@ -18,24 +33,16 @@ void learn_baseline(double *X_grid,
                     double *mu,
                     double *sigma,
                     double(*kernel)(double *, double *, double *, double *),
-                    double beta,
+                    const double beta,
                     int n);
 
 double kernel2_baseline(double *x1, double *y1, double *x2, double *y2);
 
 void initialize_meshgrid_baseline(double *X_grid, int n, double min, double inc);
 
-void gpucb_initialized_baseline(double *X_grid,
-                                double *K,
-                                double *L_T,
-                                bool *sampled,
-                                int *X,
-                                double *T,
-                                int maxIter,
-                                double *mu,
-                                double *sigma,
-                                double beta,
-                                int n);
+void initialize(const int, const int);
+void run();
+void clean();
 
 int gpucb_baseline(int maxIter, int n, double grid_min, double grid_inc);
 
