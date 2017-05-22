@@ -17,10 +17,10 @@ int main() {
     uint64_t cycles_gpucb_baseline, cycles_gpucb_optimized;
 
     // Execution variables
-    const int n = 200; // Meshgrid size
-    const int maxIter = 20; // GP-UCB # of iterations
-    const double grid_min = -4.8;
-    const double grid_inc = 0.1;
+    const int n = 24; // Meshgrid size
+    const int maxIter = 100; // GP-UCB # of iterations
+    const double grid_min = -3;
+    const double grid_inc = 0.25;
 
     if(! (n % 4 == 0)) {
         printf("n is not divisible by 4 !!! \n");
@@ -35,6 +35,9 @@ int main() {
     double mu_opt[n * n];
     double sigma[n * n];
     const double beta = 100;
+    double K[maxIter * maxIter];
+    double L[maxIter * maxIter];
+
 
     // Initialize matrices
     for (int i = 0; i < n * n; i++) {
@@ -51,10 +54,11 @@ int main() {
     perf_init();
 
     // warm up the cache
-    for (i = 0; i < N; i += 1) gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    for (i = 0; i < N; i += 1) gpucb_initialized_baseline(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
 
     cycles_count_start();
-    for (i = 0; i < N; i += 1) gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
+    for (i = 0; i < N; i += 1)     gpucb_initialized_baseline(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
+
     cycles_gpucb_baseline = cycles_count_stop();
 
     // Re-initialize matrices
@@ -74,7 +78,7 @@ int main() {
     perf_done();
 
     printf("gpucb baseline: %lf cycles\n", (double) cycles_gpucb_baseline / N);
-    printf("gpucb version 1: %lf cycles\n", (double) cycles_gpucb_optimized / N);
+    printf("gpucb version 3: %lf cycles\n", (double) cycles_gpucb_optimized / N);
     printf("Speedup: %lf\n", (double) cycles_gpucb_baseline / cycles_gpucb_optimized);
 
 
