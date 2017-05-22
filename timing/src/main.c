@@ -22,25 +22,44 @@ int main() {
     const double grid_min = -9;
     const double grid_inc = 0.05;
 
-    if(! (n % 4 == 0)) {
-        printf("n is not divisible by 4 !!! \n");
-        fprintf(stderr, " WARNING: maxIter>=n: maxIter=%d, n=%d", maxIter, n);
+    const double beta = 100;
+
+    if (!(n % 4 == 0)) {
         fprintf(stderr, " n is not divisible by 4 !!!, n=%d", n);
     }
+    if (maxIter >= n) {
+        fprintf(stderr, " WARNING: maxIter>=n: maxIter=%d, n=%d", maxIter, n);
+    }
 
-    
+
 
     // Allocate memory
-    double T[maxIter];
-    int X[2 * maxIter];
-    double X_grid[2 * n * n];
-    bool sampled[n * n];
-    double mu[n * n];
-    double mu_opt[n * n];
-    double sigma[n * n];
-    const double beta = 10;
-    double K[maxIter * maxIter];
-    double L[maxIter * maxIter];
+
+    double *T;
+    int *X;
+    double *X_grid;
+    bool *sampled;
+    double *mu;
+    double *mu_opt;
+    double *sigma;
+    double *K;
+    double *L;
+
+    T = (double *) malloc(maxIter * sizeof(double));
+    X = (int *) malloc(2 * maxIter * sizeof(int));
+    X_grid = (double *) malloc(2 * n * n * sizeof(double));
+    sampled = (bool *) malloc(n * n * sizeof(bool));
+    mu = (double *) malloc(n * n * sizeof(double));
+    mu_opt = (double *) malloc(n * n * sizeof(double));
+    sigma = (double *) malloc(n * n * sizeof(double));
+    K = (double *) malloc(maxIter * maxIter * sizeof(double));
+    L = (double *) malloc(maxIter * maxIter * sizeof(double));
+
+    if (T == 0 || X == 0 || X_grid == 0 || sampled == 0 || mu == 0 || mu_opt == 0 || sigma == 0 || K == 0 || L == 0) {
+        printf("ERROR: Out of memory\n");
+        return 1;
+    }
+
 
 
     // Initialize matrices
@@ -76,7 +95,7 @@ int main() {
     // warm up the cache
     for (i = 0; i < N; i += 1) gpucb_initialized(X_grid, K, L, sampled, X, T, maxIter, mu_opt, sigma, beta, n);
 
-    
+
     cycles_count_start();
     for (i = 0; i < N; i += 1) gpucb_initialized(X_grid, K, L, sampled, X, T, maxIter, mu_opt, sigma, beta, n);
     cycles_gpucb_optimized = cycles_count_stop();
@@ -105,34 +124,36 @@ int main() {
             double mui = mu[i * n + j];
             double mu_opti = mu_opt[i * n + j];
 
-            if(mui > maxBaseline) {
+            if (mui > maxBaseline) {
                 maxBaseline = mui;
                 iBaseline = i;
                 jBaseline = j;
             }
 
-            if(mu_opti > maxVersion) {
+            if (mu_opti > maxVersion) {
                 maxVersion = mu_opti;
                 iVersion = i;
                 jVersion = j;
             }
 
-            if(mui - mu_opti > 0.01) {
+            if (mui - mu_opti > 0.01) {
                 diffCounter++;
             }
         }
     }
 
 
-    if(diffCounter > 0) {
-        printf("Validation failed on %d/%d elements.\n", diffCounter, n*n);
+    if (diffCounter > 0) {
+        printf("Validation failed on %d/%d elements.\n", diffCounter, n * n);
     }
 
     int maxBaselineIdx = 2 * (n * iBaseline + jBaseline);
     int maxVersionIdx = 2 * (n * iVersion + jVersion);
 
-    printf("Baseline version: max=%.5lf at [%.5lf %.5lf]\n", maxBaseline, X_grid[maxBaselineIdx], X_grid[maxBaselineIdx+1]);
-    printf("Opt version:      max=%.5lf at [%.5lf %.5lf]\n", maxVersion, X_grid[maxVersionIdx], X_grid[maxVersionIdx+1]);
+    printf("Baseline version: max=%.5lf at [%.5lf %.5lf]\n", maxBaseline, X_grid[maxBaselineIdx],
+           X_grid[maxBaselineIdx + 1]);
+    printf("Opt version:      max=%.5lf at [%.5lf %.5lf]\n", maxVersion, X_grid[maxVersionIdx],
+           X_grid[maxVersionIdx + 1]);
 
     // Save output to file:
     if (false) {

@@ -8,22 +8,46 @@
 
 int main(int argc, char *argv[]) {
     // Execution variables
-    const int n = 240; // Meshgrid size
+    const int n = 500; // Meshgrid size
     const int maxIter = atoi(argv[1]); // GP-UCB # of iterations
-    if(maxIter >= n) {
+
+    if (!(n % 4 == 0)) {
+        fprintf(stderr, " n is not divisible by 4 !!!, n=%d", n);
+    }
+    if (maxIter >= n) {
         fprintf(stderr, " WARNING: maxIter>=n: maxIter=%d, n=%d", maxIter, n);
     }
-    const double grid_min = -6;
-    const double grid_inc = 0.05;
+
+    const double grid_min = -5;
+    const double grid_inc = 0.02;
+
+    const double beta = 100;
 
     // Allocate memory
-    double T[maxIter];
-    int X[2 * maxIter];
-    double X_grid[2 * n * n];
-    bool sampled[n * n];
-    double mu[n * n];
-    double sigma[n * n];
-    const double beta = 100;
+    double *T;
+    int *X;
+    double *X_grid;
+    bool *sampled;
+    double *mu;
+    double *sigma;
+    double *K;
+    double *L;
+
+    T = (double *) malloc(maxIter * sizeof(double));
+    X = (int *) malloc(2 * maxIter * sizeof(int));
+    X_grid = (double *) malloc(2 * n * n * sizeof(double));
+    sampled = (bool *) malloc(n * n * sizeof(bool));
+    mu = (double *) malloc(n * n * sizeof(double));
+    sigma = (double *) malloc(n * n * sizeof(double));
+    K = (double *) malloc(maxIter * maxIter * sizeof(double));
+    L = (double *) malloc(maxIter * maxIter * sizeof(double));
+
+    if (T == 0 || X == 0 || X_grid == 0 || sampled == 0 || mu == 0 || sigma == 0 || K == 0 || L == 0) {
+        printf("ERROR: Out of memory\n");
+        return 1;
+    }
+
+
 
     // Initialize matrices
     for (int i = 0; i < n * n; i++) {
@@ -34,8 +58,7 @@ int main(int argc, char *argv[]) {
 
 
     // Baseline
-    double K[maxIter*maxIter];
-    double L[maxIter*maxIter];
+
     initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
     gpucb_initialized_baseline(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
 
