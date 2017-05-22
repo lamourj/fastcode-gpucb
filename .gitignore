@@ -27,7 +27,6 @@ timing/build/
 
 # The virtual environment
 bin/
-lib/
 pip-selfcheck.json
 pyvenv.cfg
 

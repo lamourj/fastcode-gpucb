@@ -1,6 +1,6 @@
 // Baseline version.
 
-#include "gpucb.h"
+#include "gpucb0.h"
 #include "mathHelpers3.h"
 #include <stdio.h>
 #include <math.h>
@@ -57,6 +57,7 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
             maxIs = _mm256_blendv_pd(maxIs, currentIndicesI, comparedAndSampled);
             maxJs = _mm256_blendv_pd(maxJs, currentIndicesJ, comparedAndSampled);
 
+            /*
             double currentValue0 = currentValues[0];
             if (currentValue0 > firstMax &&
                 !sampled[inj]) { // Maybe faster if inverted, especially after blocking? Lookup faster than comparison.
@@ -89,7 +90,10 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
                 maxJ = j + 3;
             }
             inj++;
+            */
 
+            inj += 4;
+            /*
             double maximums[4];
             double maxIValues[4];
             double maxJValues[4];
@@ -110,10 +114,10 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
                     ourMaxI = (int) maxIValues[zz];
                     ourMaxJ = (int) maxJValues[zz];
                 }
-            }
+            }*/
 
 
-
+            /*
             if(vectorMax >= firstMax) {
 
             } else {
@@ -131,14 +135,36 @@ void learn(double *X_grid, bool *sampled, int *X, double *T, int t, double *mu, 
                 printf("ourI: %d  ourJ: %d\n", ourMaxI, ourMaxJ);
                 printf("i0: %d  i1: %d  i2: %d  i3: %d\n", (int)maxIValues[0], (int)maxIValues[1], (int)maxIValues[2], (int)maxIValues[3]);
                 printf("j0: %d  j1: %d  j2: %d  j3: %d\n", (int)maxJValues[0], (int)maxJValues[1], (int)maxJValues[2], (int)maxJValues[3]);
-*/
+
             }
 
             if(false && currentValue0 == currentValue3) {
                 printf("Maybe understood\n");
-            }
+            }*/
         }
     }
+    double maximums[4];
+    double maxIValues[4];
+    double maxJValues[4];
+
+    _mm256_store_pd(maximums, max);
+    _mm256_store_pd(maxIValues, maxIs);
+    _mm256_store_pd(maxJValues, maxJs);
+
+    ourMaxI = (int) maxIValues[0];
+    ourMaxJ = (int) maxJValues[0];
+
+
+    double vectorMax = maximums[0];
+
+    for (zz = 3; zz >=0; zz--) {
+        if (maximums[zz] > vectorMax) {
+            vectorMax = maximums[zz];
+            ourMaxI = (int) maxIValues[zz];
+            ourMaxJ = (int) maxJValues[zz];
+        }
+    }
+
 
 
     const int t2 = 2 * t;

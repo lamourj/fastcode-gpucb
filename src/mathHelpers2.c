@@ -4,6 +4,7 @@
 #include <math.h>
 
 
+
 /*
  Straightforward implementation of inplace Cholesky decomposition of matrix A.
  Input arguments:
@@ -195,7 +196,17 @@ void gp_regression(double *X_grid,
                 //f_star += k_star[k] * alpha->data[k];
                 f_star += k_star[k] * alpha[k];
             }
-
+            /*
+            if(f_star != f_star) {
+                printf("Nan problem fstar\n");
+            }
+            if(f_star >= 200) {
+                printf("f_star: %lf , t: %d\n", f_star, t);
+            }*/
+            /*
+            if(t >= 60) {
+                printf("%lf\n", f_star);
+            }*/
             mu[inj] = f_star;
             //printf("fstar is: %lf", f_star);
             //printf("write in mu at %d \n", i*n+j);
@@ -209,6 +220,11 @@ void gp_regression(double *X_grid,
                 const double vkvk = vk * vk;
                 variance -= vkvk;
             }
+
+            /*
+            if (variance < 0) {
+                variance = 0.0;
+            }*/
 
             sigma[inj] = variance;
 
