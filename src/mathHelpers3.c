@@ -3,7 +3,6 @@
 #include "mathHelpers3.h"
 #include <math.h>
 
-
 /*
  Straightforward implementation of inplace Cholesky decomposition of matrix A.
  Input arguments:
@@ -119,16 +118,16 @@ void transpose(double *M, double *M_T, int d, int size) {
 
 
 void gp_regression(double *X_grid,
-                   double *K,
-                   double *L_T,
-                   int *X,
-                   double *T,
-                   int t,
-                   int maxIter,
-                   double   (*kernel)(double *, double *, double *, double *),
-                   double *mu,
-                   double *sigma,
-                   int n) {
+                            double *K,
+                            double *L_T,
+                            int *X,
+                            double *T,
+                            int t,
+                            int maxIter,
+                            double   (*kernel)(double *, double *, double *, double *),
+                            double *mu,
+                            double *sigma,
+                            int n) {
     int t_gp = t + 1;
 
     // extend the K matrix

@@ -10,11 +10,11 @@
 double function(double x, double y) {
     // double t = sin(x) + cos(y);
     double t = -pow(x, 2) - pow(y, 2);
-    printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
+    // printf("(C code) Sampled: [%.2lf %.2lf] result %lf \n", x, y, t);
     return t;
 }
 
-void learn_baseline(double *X_grid,
+void learn(double *X_grid,
                     double *K,
                     double *L_T,
                     bool *sampled,
@@ -111,8 +111,8 @@ void learn_baseline(double *X_grid,
     const int maxInmaxJ = maxI * n + maxJ;
     sampled[maxInmaxJ] = true;
     const int maxInmaxJ2 = 2 * maxInmaxJ;
-    T[t] = function_baseline(X_grid[maxInmaxJ2], X_grid[maxInmaxJ2 + 1]);
-    gp_regression_baseline(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
+    T[t] = function(X_grid[maxInmaxJ2], X_grid[maxInmaxJ2 + 1]);
+    gp_regression(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
                            n); // updating mu and sigma for every x in X_grid
 }
 
