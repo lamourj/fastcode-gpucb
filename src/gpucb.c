@@ -4,12 +4,15 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
-
+#include <string.h>
+const char *tag[10] = {"baseline"};
 void initialize(const int I, const int N){
     BETA_ = 100;
     GRID_MIN_ = -6;
     GRID_INC_ = 0.025;
+    //tag = "baseline";
+    //tag = (char*)malloc((strlen(tmp)+1) * sizeof(char));
+    
     I_ = I;
     N_ = N;
     T_ = (double *) malloc(I * sizeof(double));
@@ -120,6 +123,7 @@ void clean(){
     free(sigma_);
     free(K_);
     free(L_);
+
 }
 
 

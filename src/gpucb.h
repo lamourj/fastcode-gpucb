@@ -7,6 +7,7 @@
 double GRID_MIN_;
 double GRID_INC_;
 double BETA_;
+extern const char *tag[10];
 // Allocate memory
 double *T_;
 int *X_;

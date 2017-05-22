@@ -10,14 +10,14 @@
 
 
 // ONLY CHANGE THIS
-#include "../../src/fun1.h"
-const int N_MIN = 8; // min meshgrid size
-const int N_MAX = 50; // max meshgrid size
+#include "../../src/gpucb.h"
+const int N_MIN = 480; // min meshgrid size
+const int N_MAX = 520; // max meshgrid size
 const int N_STEP = 8; // 
 const int ITER_MIN = 20; // min number of iterations
-const int ITER_MAX = 80; // min number of iterations
+const int ITER_MAX = 20; // min number of iterations
 const int ITER_STEP = 20; // min number of iterations
-const int NUM_RUNS = 5;
+const int NUM_RUNS = 1;
 
 // DO NOT CHANGE THE FOLLOWING LINES
 int main() {
@@ -30,8 +30,10 @@ int main() {
 	if( N_MIN != N_MAX){
 		i = ITER_MIN;
 		FILE *fp;
-		char filename[50];
-		strcpy(filename, tag);
+		char filename[50] = "";
+		printf("the tag is:");
+		printf("%s",*tag);
+		strcpy(filename, *tag);
 		strcat(filename, "_N");
 		strcat(filename, ".csv");
 
@@ -58,8 +60,8 @@ int main() {
 		n = N_MIN;
 		FILE *fp;
 		char filename[50];
-		strcpy(filename, tag);
-		strcat(filename, "_I");
+		strcpy(filename, *tag);
+		strcat(filename, "_N");
 		strcat(filename, ".csv");
 
 	   	fp = fopen(filename, "w+");
