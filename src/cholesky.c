@@ -14,22 +14,24 @@
     n:    The size of the data in matrix A to decompose
     size: The actual size of the rows
  */
-void cholesky(double *A, int n, int size) {
+void cholesky(double *A, double  *result, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
         // Update the off diagonal entries first.
         for (int j = 0; j < i; ++j) {
+            result[size*i+j] = A[size*i+j];
             for (int k = 0; k < j; ++k) {
-                A[size * i + j] -= A[size * i + k] * A[size * j + k];
+                result[size * i + j] -= result[size * i + k] * result[size * j + k];
             }
-            A[size * i + j] /= A[size * j + j];
+            result[size * i + j] /= result[size * j + j];
         }
 
         // Update the diagonal entry of this row.
+        result[size*i+i] = A[size*i+i];
         for (int k = 0; k < i; ++k) {
-            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+            result[size * i + i] -= result[size * i + k] * result[size * i + k];
         }
-        A[size * i + i] = sqrtf(A[size * i + i]);
+        A[size * i + i] = sqrtf(result[size * i + i]);
     }
 }
 
@@ -45,7 +47,39 @@ void cholesky(double *A, int n, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky(double *A, double *result, int n1, int n2, int size) {
+void incremental_cholesky(double *A, double *A_T, int n1, int n2, int size) {
+    for (int i = n1; i < n2; ++i) {
+        // Update the off diagonal entries.
+        for (int j = 0; j < i; ++j) {
+            for (int k = 0; k < j; ++k) {
+                A[size * i + j] -= A[size * i + k] * A[size * j + k];
+            }
+            A[size * i + j] /= A[size * j + j];
+            A_T[size*j + i] = A[size * i + j];
+        }
+        // Update the diagonal entry.
+        for (int k = 0; k < i; ++k) {
+            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+        }
+        A[size * i + i] = sqrtf(A[size * i + i]);
+        A_T[size*i + i] = A[size * i + i];
+    }
+
+}
+
+
+/*
+ Incremental implementation of Cholesky decomposition:
+ The matrix contains a Cholesky decomposition until row n1,
+ rows n1, to n2 are new data.
+ Input arguments:
+    A:    Partially decomposed matrix with new data from row n1, to n2
+    n1:   Start of the new data
+    n2:   End of the new data
+    size: The actual size of the rows
+
+ */
+void incremental_cholesky_vect(double *A, double *result, int n1, int n2, int size) {
     __m256d v1, v2, acc;
 
     double acc1;
@@ -133,25 +167,49 @@ double frand() {
 int main() {
 
     int n = 100;
-    double A[n * n];
-    double result[n * n];
-    double PSD[n * n];
-    gsl_matrix *L = gsl_matrix_alloc(n, n);
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            A[n * i + j] = frand();
+    for (int i = 1; i < n; ++i) {
+        double A[i * i];
+        double result[i * i];
+        double PSD[i * i];
+        gsl_matrix *L = gsl_matrix_alloc(i, i);
+
+        for (int ii = 0; ii < i; ++ii) {
+            for (int j = 0; j < i; ++j) {
+                A[i * ii + j] = frand();
+            }
         }
+
+        for (int ii = 0; ii < i; ++ii) {
+            for (int j = 0; j < i; ++j) {
+                PSD[ii * i + j] = 0;
+                for (int k = 0; k < i; ++k) {
+                    PSD[ii * i + j] += A[ii * i + k] * A[j * i + k];
+                }
+                gsl_matrix_set(L, ii, j, PSD[ii * i + j]);
+            }
+        }
+
+        clock_t start, end;
+        double CPU_time, CPU_original;
+
+        start = clock();
+        for (int t=0; t<10000; t++) {
+            incremental_cholesky(PSD, result, 0, i, i);
+        }
+        end = clock();
+        CPU_time = (end - start);
+
+        start = clock();
+        for(int t=0; t<10000; t++) {
+            cholesky(PSD, result, i, i);
+        }
+        end = clock();
+        CPU_original = (end - start);
+        printf("Speedup: %lf\n", CPU_time/CPU_original);
+
+        gsl_linalg_cholesky_decomp1(L);
     }
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            PSD[i * n + j] = 0;
-            for (int k = 0; k < n; ++k) {
-                PSD[i * n + j] += A[i * n + k] * A[j * n + k];
-            }
-            gsl_matrix_set(L, i, j, PSD[i * n + j]);
-        }
-    }
 
 //    for (int i = 0; i < n; ++i) {
 //        for (int j = 0; j < n; ++j) {
@@ -162,18 +220,7 @@ int main() {
 
     //cholesky(PSD, n-2, n);
 
-    clock_t start, end;
-    double CPU_time;
 
-    start = clock();
-    for (int t=0; t<10000; t++) {
-        incremental_cholesky(PSD, result, 0, n, n);
-    }
-    end = clock();
-    CPU_time = (end - start);
-    printf("execution time: %lf\n", CPU_time/10000);
-
-    gsl_linalg_cholesky_decomp1(L);
 
 //    printf("The library decomposition:\n");
 //    for (int i = 0; i < n; ++i) {
