@@ -9,7 +9,7 @@
 #include "../../src/gpucb.h"
 
 
-#define N 10
+#define N 1
 
 
 int main() {
@@ -18,7 +18,7 @@ int main() {
 
     // Execution variables
     const int n = 360; // Meshgrid size
-    const int maxIter = 40; // GP-UCB # of iterations
+    const int maxIter = 80; // GP-UCB # of iterations
     const double grid_min = -9;
     const double grid_inc = 0.05;
 
@@ -77,13 +77,12 @@ int main() {
     perf_init();
 
     // warm up the cache
-    for (i = 0; i < N; i += 1) gpucb_initialized_baseline(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
+    // for (i = 0; i < N; i += 1) gpucb_initialized_baseline(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
 
     cycles_count_start();
     for (i = 0; i < N; i += 1) gpucb_initialized_baseline(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
 
     cycles_gpucb_baseline = cycles_count_stop();
-
 
     // Re-initialize matrices
     for (int i = 0; i < n * n; i++) {
@@ -92,8 +91,9 @@ int main() {
         sigma[i] = 0.5;
     }
     initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
+    
     // warm up the cache
-    for (i = 0; i < N; i += 1) gpucb_initialized(X_grid, K, L, sampled, X, T, maxIter, mu_opt, sigma, beta, n);
+    // for (i = 0; i < N; i += 1) gpucb_initialized(X_grid, K, L, sampled, X, T, maxIter, mu_opt, sigma, beta, n);
 
 
     cycles_count_start();

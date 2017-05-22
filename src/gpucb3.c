@@ -27,10 +27,7 @@ void learn(double *X_grid,
                     double(*kernel)(double *, double *, double *, double *),
                     double beta,
                     int n) {
-    int maxI = 0;
-    int maxJ = 0;
-    int ourMaxI = 0;
-    int ourMaxJ = 0;
+
     __m256d maxIs = _mm256_setzero_pd();
     __m256d maxJs = _mm256_setzero_pd();
 
@@ -43,16 +40,16 @@ void learn(double *X_grid,
 
     for (i = 0; i < n; i++) {
         for (j = 0; j < n; j += unrollingFactor) {
-            __m256d mus = _mm256_loadu_pd(mu + inj);
-            __m256d sigmas = _mm256_loadu_pd(sigma + inj);
-            __m256d betaSigmas = _mm256_mul_pd(sqrtBeta, sigmas);
-            __m256d currentValues = _mm256_add_pd(mus, betaSigmas);
-            __m256d sampledValues = _mm256_set_pd(sampled[inj + 3], sampled[inj + 2], sampled[inj + 1], sampled[inj]);
-            __m256d currentIndicesI = _mm256_set1_pd(i);
-            __m256d currentIndicesJ = _mm256_set_pd(j + 3, j + 2, j + 1, j);
+            const __m256d mus = _mm256_loadu_pd(mu + inj);
+            const __m256d sigmas = _mm256_loadu_pd(sigma + inj);
+            const __m256d betaSigmas = _mm256_mul_pd(sqrtBeta, sigmas);
+            const __m256d currentValues = _mm256_add_pd(mus, betaSigmas);
+            const __m256d sampledValues = _mm256_set_pd(sampled[inj + 3], sampled[inj + 2], sampled[inj + 1], sampled[inj]);
+            const __m256d currentIndicesI = _mm256_set1_pd(i);
+            const __m256d currentIndicesJ = _mm256_set_pd(j + 3, j + 2, j + 1, j);
 
-            __m256d compared = _mm256_cmp_pd(currentValues, max, 14); // 14 is _CMP_GT_OS
-            __m256d comparedAndSampled = _mm256_andnot_pd(sampledValues, compared);
+            const __m256d compared = _mm256_cmp_pd(currentValues, max, 14); // 14 is _CMP_GT_OS
+            const __m256d comparedAndSampled = _mm256_andnot_pd(sampledValues, compared);
 
             max = _mm256_blendv_pd(max, currentValues, comparedAndSampled);
             maxIs = _mm256_blendv_pd(maxIs, currentIndicesI, comparedAndSampled);
@@ -62,50 +59,19 @@ void learn(double *X_grid,
         }
     }
 
-    /*
-    double maximums[4];
-    double maxIValues[4];
-    double maxJValues[4];
-
-    _mm256_store_pd(maximums, max);
-    _mm256_store_pd(maxIValues, maxIs);
-    _mm256_store_pd(maxJValues, maxJs);
-
-     ourMaxI = (int) maxIValues[0];
-     ourMaxJ = (int) maxJValues[0];
-     vectorMax = (int) maximums[0];
-
-     for (zz = 3; zz >= 0; zz--) {
-        if (max[zz] > vectorMax) {
-            vectorMax = maximums[zz];
-            ourMaxI = (int) maxIValues[zz];
-            ourMaxJ = (int) maxJValues[zz];
-        }
-    }
-     */
-
-    ourMaxI = (int) maxIs[0];
-    ourMaxJ = (int) maxJs[0];
-
-
+    int maxI = (int) maxIs[0];
+    int maxJ = (int) maxJs[0];
     double vectorMax = max[0];
 
     for (zz = 3; zz >= 0; zz--) {
         if (max[zz] > vectorMax) {
             vectorMax = max[zz];
-            ourMaxI = (int) maxIs[zz];
-            ourMaxJ = (int) maxJs[zz];
+            maxI = (int) maxIs[zz];
+            maxJ = (int) maxJs[zz];
         }
     }
 
-
-    int v = (int) maxIs[zz];
-
-
     const int t2 = 2 * t;
-    maxI = ourMaxI;
-    maxJ = ourMaxJ;
-
     X[t2] = maxI;
     X[t2 + 1] = maxJ;
     const int maxInmaxJ = maxI * n + maxJ;
@@ -119,6 +85,7 @@ void learn(double *X_grid,
 double kernel2(double *x1, double *y1, double *x2, double *y2) {
     // RBF kernel
     double sigma = 1;
+    
     return exp(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
 }
 
