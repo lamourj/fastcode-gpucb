@@ -4,14 +4,14 @@ project(fastcode-gpucb)
 set(CMAKE_C_STANDARD 99)
 
 set(SOURCE_FILES
-        src/gpucb3.h
-        src/gpucb3.c
-        src/mathHelpers3.h
-        src/mathHelpers3.c
+        src/gpucb.h
+        src/gpucb.c
+        src/mathHelpers.h
+        src/mathHelpers.c
         src/main.c
         src/main.h
         )
 add_executable(fastcode-gpucb ${SOURCE_FILES})
 
-## Compiler flags
-set(CMAKE_C_FLAGS "-O3 -march=core-avx2")        ## Optimize
+## Compiler flags.
+set(CMAKE_C_FLAGS "-O3 -march=core-avx2 -fno-tree-vectorize")        ## Optimize

@@ -33,15 +33,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    // -------------------------------------------------------------------------------
-    //                          OLD VERSION
-    //initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
-    //gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
-    // -------------------------------------------------------------------------------
-
-
-//    // For new version, call this:
-
+    // Baseline
     double K[maxIter*maxIter];
     double L[maxIter*maxIter];
     initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);

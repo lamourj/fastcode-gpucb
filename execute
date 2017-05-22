@@ -4,14 +4,15 @@
 #gcc -O3 -fno-tree-vectorize -L/usr/local/lib -lgsl -lgslcblas src/main.o
 
 # Number of iterations to run (changes both python and C code)
-NITER=5
-
-# Use this for launching version 1 (requires changes in main):
-gcc -O3 src/main.c src/main.h src/gpucb1.h src/gpucb1.c src/mathHelpers1.h src/mathHelpers1.c
+NITER=100
 
 
-# Use this for the baseline:
-# gcc -O3 src/main.c src/main.h src/gpucb.h src/gpucb.c src/mathHelpers.h src/mathHelpers.c
+# V3:
+# gcc -O3 -fno-tree-vectorize src/main.c src/main.h src/gpucb3.h src/gpucb3.c src/mathHelpers3.h src/mathHelpers3.c
+
+
+# Baseline:
+gcc -O3 -fno-tree-vectorize src/main.c src/main.h src/gpucb.h src/gpucb.c src/mathHelpers.h src/mathHelpers.c
 
 
 ./a.out $NITER
