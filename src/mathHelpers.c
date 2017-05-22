@@ -145,10 +145,6 @@ void gp_regression_baseline(double *X_grid,
         if(i==j){
             K[i * maxIter + j] += 0.5;
         }
-
-        /*printf("t_gp: %d, x0: %lf, y0: %lf, x1: %lf, y1: %lf, k: %lf, ki:%d \n", t_gp, X_grid[x1 * 2 * n + 2 * y1],
-               X_grid[x1 * 2 * n + 2 * y1 + 1], X_grid[x2 * 2 * n + 2 * y2], X_grid[x2 * 2 * n + 2 * y2 + 1],
-               K[i * t_gp + j], i * t_gp + j);*/
     }
 
 
@@ -166,9 +162,9 @@ void gp_regression_baseline(double *X_grid,
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
-    for (int i = 0; i < n; i++) // for all points in X_grid
+    for (int i = 0; i < n; i++) // for all points in X_grid ([i])
     {
-        for (int j = 0; j < n; j++) // for all points in X_grid
+        for (int j = 0; j < n; j++) // for all points in X_grid ([i][j])
         {
             double x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
             double y_star = X_grid[2 * n * i + 2 * j + 1];

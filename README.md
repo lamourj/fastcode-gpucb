@@ -24,3 +24,8 @@ Suggestions on how to split the work:
 Dependencies might not be too restrictives: optimization might be done by starting some computations before other end.
 
 Use AVX2
+
+## 1:1 Meeting Max 24th ##
+
+
+

@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <float.h>
 #include "perf.h"
-#include "gpucb3.h"
-#include "gpucb.h"
+#include "../../src/gpucb3.h"
+#include "../../src/gpucb.h"
 
 
 #define N 10
