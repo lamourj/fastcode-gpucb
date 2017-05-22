@@ -178,10 +178,9 @@ void incremental_cholesky_baseline(double *A, double *A_T, int n1, int n2, int s
         for (int k = 0; k < i; ++k) {
             A[size * i + i] -= A[size * i + k] * A[size * i + k];
         }
-        A[size * i + i] = sqrtf(A[size * i + i]);
+        A[size * i + i] = sqrt(A[size * i + i]);
         A_T[size*i + i] = A[size * i + i];
     }
-
 }
 
 

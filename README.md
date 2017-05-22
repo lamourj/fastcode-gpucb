@@ -9,9 +9,7 @@ Baseline now has incremental Cholesky.
 3. Vectorized search of the maximum value to sample.
 
 ## 1:1 Meeting May 9th ##
-Todos:
-
-- Fix kernel (to RBF) -- done
+- ~~Fix kernel (to RBF) -- done~~
 - Neglect function cost -- done?
 - Use floats (update: is it sufficient?)
 - Push sizes (10, 20,... 50 iterations)
@@ -25,7 +23,22 @@ Dependencies might not be too restrictives: optimization might be done by starti
 
 Use AVX2
 
-## 1:1 Meeting Max 24th ##
+## 1:1 Meeting Max 24th: TODOS
 
-
-
+- Recheck flops count
+- ~~malloc for grid (done)~~
+- Nice plots:
+    - Baseline:
+        - Dependent on N
+        - Dependent on I
+    - Incremental Cholesky:
+        - Vectorization (I)
+        - No vect (I)
+    - Cholesky solve:
+        - 2 opt. versions (I, N)
+        - no opt.
+    - Searching max grid
+- ~~NAN for large I (done)~~
+- Fill out online form
+- Double vs float: What do we do??
+- Time vs. python reference code
