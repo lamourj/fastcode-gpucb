@@ -4,17 +4,17 @@
 #include <string.h>
 #include <stdio.h>
 #include <float.h>
-#include "gpucb1.h" // CHANGE TO gpucb1.h for newer version
+#include "gpucb.h" // CHANGE TO gpucb1.h for newer version
 
 int main(int argc, char *argv[]) {
     // Execution variables
-    const int n = 24; // Meshgrid size
+    const int n = 240; // Meshgrid size
     const int maxIter = atoi(argv[1]); // GP-UCB # of iterations
     if(maxIter >= n) {
         fprintf(stderr, " WARNING: maxIter>=n: maxIter=%d, n=%d", maxIter, n);
     }
-    const double grid_min = -3;
-    const double grid_inc = 0.25;
+    const double grid_min = -6;
+    const double grid_inc = 0.05;
 
     // Allocate memory
     double T[maxIter];
@@ -41,10 +41,12 @@ int main(int argc, char *argv[]) {
 
 
 //    // For new version, call this:
+
     double K[maxIter*maxIter];
     double L[maxIter*maxIter];
-    initialize_meshgrid(X_grid, n, grid_min, grid_inc);
-    gpucb_initialized(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
+    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
+    gpucb_initialized_baseline(X_grid, K, L, sampled, X, T, maxIter, mu, sigma, beta, n);
+
 
     // Find maximum point:
     int maxI = 0;
