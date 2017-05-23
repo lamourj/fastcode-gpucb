@@ -5,103 +5,84 @@
 #include <stdio.h>
 #include <float.h>
 #include "perf.h"
-#include "gpucb3.h"
-#include "gpucb.h"
+#include <string.h>
 
 
-#define N 1
 
+// ONLY CHANGE THIS
+#include "../../src/gpucb.h"
+const int N_MIN = 480; // min meshgrid size
+const int N_MAX = 520; // max meshgrid size
+const int N_STEP = 8; // 
+const int ITER_MIN = 20; // min number of iterations
+const int ITER_MAX = 20; // min number of iterations
+const int ITER_STEP = 20; // min number of iterations
+const int NUM_RUNS = 1;
 
+// DO NOT CHANGE THE FOLLOWING LINES
 int main() {
+	if(!(N_STEP % 4 == 0)) {
+        	printf("n is not divisible by 4 !!! \n");
+	}
+	int j, n, i;
+	uint64_t cycle_cnt;
+	
+	if( N_MIN != N_MAX){
+		i = ITER_MIN;
+		FILE *fp;
+		char filename[50] = "";
+		printf("the tag is:");
+		printf("%s",*tag);
+		strcpy(filename, *tag);
+		strcat(filename, "_N");
+		strcat(filename, ".csv");
 
-    uint64_t cycles_gpucb_baseline, cycles_gpucb_optimized;
+	   	fp = fopen(filename, "w+");
+	   	fprintf(fp, "n\ti\tcycles\n");
+		perf_init();
+		for(n=N_MIN; n<=N_MAX; n+=N_STEP){
+			initialize(i, n);
+		    	// warm up the cache
+		    	for (j = 0; i < NUM_RUNS; j += 1) run();
+			clean();
+	
+			initialize(i,n);
+			cycles_count_start();
+			for (j = 0; j < NUM_RUNS; j += 1) run();
+			cycle_cnt = cycles_count_stop();
+			clean();
+			fprintf(fp, "%d\t%d\t%lf\n", n, i, (double) cycle_cnt / NUM_RUNS);
+		}
+		fclose(fp);
+	}
+	
+	if(ITER_MIN != ITER_MAX){
+		n = N_MIN;
+		FILE *fp;
+		char filename[50];
+		strcpy(filename, *tag);
+		strcat(filename, "_N");
+		strcat(filename, ".csv");
 
-    // Execution variables
-    const int n = 200; // Meshgrid size
-    const int maxIter = 20; // GP-UCB # of iterations
-    const double grid_min = -4.8;
-    const double grid_inc = 0.1;
-
-    if(! (n % 4 == 0)) {
-        printf("n is not divisible by 4 !!! \n");
-    }
-
-    // Allocate memory
-    double T[maxIter];
-    int X[2 * maxIter];
-    double X_grid[2 * n * n];
-    bool sampled[n * n];
-    double mu[n * n];
-    double mu_opt[n * n];
-    double sigma[n * n];
-    const double beta = 100;
-
-    // Initialize matrices
-    for (int i = 0; i < n * n; i++) {
-        sampled[i] = false;
-        mu[i] = 0;
-        sigma[i] = 0.5;
-    }
-
-
-    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
-
-
-    int i;
-    perf_init();
-
-    // warm up the cache
-    for (i = 0; i < N; i += 1) gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
-
-    cycles_count_start();
-    for (i = 0; i < N; i += 1) gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
-    cycles_gpucb_baseline = cycles_count_stop();
-
-    // Re-initialize matrices
-    for (int i = 0; i < n * n; i++) {
-        sampled[i] = false;
-        mu_opt[i] = 0;
-        sigma[i] = 0.5;
-    }
-    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
-    // warm up the cache
-    for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu_opt, sigma, beta);
-
-    cycles_count_start();
-    for (i = 0; i < N; i += 1) gpucb_initialized(maxIter, n, T, X, X_grid, sampled, mu_opt, sigma, beta);
-    cycles_gpucb_optimized = cycles_count_stop();
-
-    perf_done();
-
-    printf("gpucb baseline: %lf cycles\n", (double) cycles_gpucb_baseline / N);
-    printf("gpucb version 1: %lf cycles\n", (double) cycles_gpucb_optimized / N);
-    printf("Speedup: %lf\n", (double) cycles_gpucb_baseline / cycles_gpucb_optimized);
-
-
-    // Validation:
-    int diffCounter = 0;
-    for(i = 0; i < n * n; i++) {
-        int mui = mu[i];
-        int mu_opti = mu_opt[i];
-
-        if(mui != mu_opti) {
-            diffCounter++;
-        }
-    }
-    if(diffCounter > 0) {
-        printf("Validation failed on %d/%d elements.\n", diffCounter, n*n);
-    }
-
-    // Save output to file:
-    if (false) {
-        FILE *f = fopen("mu_c.txt", "w");
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                fprintf(f, "%lf, ", mu[i * n + j]);
-            }
-            fprintf(f, "\n");
-        }
-        fclose(f);
-    }
+	   	fp = fopen(filename, "w+");
+	   	fprintf(fp, "n\ti\tcycles\n");
+		perf_init();
+		for(i=ITER_MIN; i<=ITER_MAX; i+=ITER_STEP){
+			initialize(i, n);
+		    	// warm up the cache
+		    	for (j = 0; i < NUM_RUNS; j += 1) run();
+			clean();
+	
+			initialize(i,n);
+			cycles_count_start();
+			for (j = 0; j < NUM_RUNS; j += 1) run();
+			cycle_cnt = cycles_count_stop();
+			clean();
+			fprintf(fp, "%d\t%d\t%lf\n", n, i, (double) cycle_cnt / NUM_RUNS);
+		}
+		fclose(fp);
+	}
+	perf_done();
+	    	
     return 0;
 }

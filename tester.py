@@ -34,8 +34,8 @@ for item in data2:
         pass
 
 mu = np.array(mu)
-x = np.arange(-6, 6, 0.05)
-y = np.arange(-6, 6, 0.05)
+x = np.arange(-6, 6, 0.025)
+y = np.arange(-6, 6, 0.025)
 
 grid = np.meshgrid(x, y)
 original = sample(grid)

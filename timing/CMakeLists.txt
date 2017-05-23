@@ -81,7 +81,7 @@ if (CMAKE_C_COMPILER_ID MATCHES "Clang")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
     # GNU GCC - CC flags
-    set(CMAKE_C_FLAGS "-O3 -march=core-avx2 -std=c99")
+    set(CMAKE_C_FLAGS "-O3 -march=core-avx2 -std=c99 -fno-tree-vectorize")
 
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
 
@@ -97,14 +97,14 @@ endif()
 
 
 set(SOURCE_FILES
-    src/mathHelpers.h
-    src/mathHelpers.c
-    src/gpucb.h
-    src/gpucb.c
-    src/gpucb3.h
-    src/gpucb3.c
-    src/mathHelpers3.h
-    src/mathHelpers3.c
+    ../../src/gpucb.h
+    ../../src/gpucb.c
+    ../../src/mathHelpers.h
+    ../../src/mathHelpers.c
+    ../../src/gpucb3.h
+    ../../src/gpucb3.c
+    ../../src/mathHelpers3.h
+    ../../src/mathHelpers3.c
     src/main.c
     src/main.h
 )
