@@ -256,8 +256,8 @@ float frand() {
 
 int main() {
 
-    int n = 20;
-    int gridsize = 200;
+    int n = 5;
+    int gridsize = 20;
 
 
     float A[n * n];
@@ -306,6 +306,8 @@ int main() {
     }
 
 
+
+    
     // Run the timing experiment for different grid sizes:
     for (int i = 24; i < gridsize; i+=8) {
 
@@ -371,47 +373,53 @@ int main() {
             {
                 for (int j = 0; j < i; j += 8) // for all points in X_grid
                 {
-                    float x_star0, x_star1, x_star2, x_star3, x_star4, x_star5, x_star6, x_star7;
-                    float y_star0, y_star1, y_star2, y_star3, y_star4, y_star5, y_star6, y_star7;
-                    float k_star0[n], k_star1[n], k_star2[n], k_star3[n], k_star4[n], k_star5[n], k_star6[n], k_star7[n];
-
-                    x_star0 = X_grid[2 * gridsize * l + 2 * (j)];
-                    y_star0 = X_grid[2 * gridsize * l + 2 * (j) + 1];
-                    x_star1 = X_grid[2 * gridsize * l + 2 * (j + 1)];
-                    y_star1 = X_grid[2 * gridsize * l + 2 * (j + 1) + 1];
-                    x_star2 = X_grid[2 * gridsize * l + 2 * (j + 2)];
-                    y_star2 = X_grid[2 * gridsize * l + 2 * (j + 2) + 1];
-                    x_star3 = X_grid[2 * gridsize * l + 2 * (j + 3)];
-                    y_star3 = X_grid[2 * gridsize * l + 2 * (j + 3) + 1];
-                    x_star4 = X_grid[2 * gridsize * l + 2 * (j + 4)];
-                    y_star4 = X_grid[2 * gridsize * l + 2 * (j + 4) + 1];
-                    x_star5 = X_grid[2 * gridsize * l + 2 * (j + 5)];
-                    y_star5 = X_grid[2 * gridsize * l + 2 * (j + 5) + 1];
-                    x_star6 = X_grid[2 * gridsize * l + 2 * (j + 6)];
-                    y_star6 = X_grid[2 * gridsize * l + 2 * (j + 6) + 1];
-                    x_star7 = X_grid[2 * gridsize * l + 2 * (j + 7)];
-                    y_star7 = X_grid[2 * gridsize * l + 2 * (j + 7) + 1];
+                    // float x_star0, x_star1, x_star2, x_star3, x_star4, x_star5, x_star6, x_star7;
+                    // float y_star0, y_star1, y_star2, y_star3, y_star4, y_star5, y_star6, y_star7;
+                    // float k_star0[n], k_star1[n], k_star2[n], k_star3[n], k_star4[n], k_star5[n], k_star6[n], k_star7[n];
+                    float k_star[n * 8];
+                    // x_star0 = X_grid[2 * gridsize * l + 2 * (j)];
+                    // y_star0 = X_grid[2 * gridsize * l + 2 * (j) + 1];
+                    // x_star1 = X_grid[2 * gridsize * l + 2 * (j + 1)];
+                    // y_star1 = X_grid[2 * gridsize * l + 2 * (j + 1) + 1];
+                    // x_star2 = X_grid[2 * gridsize * l + 2 * (j + 2)];
+                    // y_star2 = X_grid[2 * gridsize * l + 2 * (j + 2) + 1];
+                    // x_star3 = X_grid[2 * gridsize * l + 2 * (j + 3)];
+                    // y_star3 = X_grid[2 * gridsize * l + 2 * (j + 3) + 1];
+                    // x_star4 = X_grid[2 * gridsize * l + 2 * (j + 4)];
+                    // y_star4 = X_grid[2 * gridsize * l + 2 * (j + 4) + 1];
+                    // x_star5 = X_grid[2 * gridsize * l + 2 * (j + 5)];
+                    // y_star5 = X_grid[2 * gridsize * l + 2 * (j + 5) + 1];
+                    // x_star6 = X_grid[2 * gridsize * l + 2 * (j + 6)];
+                    // y_star6 = X_grid[2 * gridsize * l + 2 * (j + 6) + 1];
+                    // x_star7 = X_grid[2 * gridsize * l + 2 * (j + 7)];
+                    // y_star7 = X_grid[2 * gridsize * l + 2 * (j + 7) + 1];
 
                     __m256 v1, v2, x_star, y_star;
 
                     v1 = _mm256_loadu_ps(X_grid[2 * gridsize * l + 2 * j]);
                     v2 = _mm256_loadu_ps(X_grid[2 * gridsize * l + 2 * (j + 4)]);
 
-                    //x_star = _mm256_blendv_ps()
+                    // Build the mask for the blend function
+                    const int mask_x = 2 + 8 + 32 + 128
+                    const int mask_y = 1 + 4 + 16 + 64
+                    x_star = _mm256_blend_ps(v1, v2, mask_x);
+                    y_star = _mm256_blend_ps(v1, v2, mask_y);
 
+                    __m256 arg1x, arg1y;
                     for (int kk = 0; kk < n; kk++) {
                         int x = X[2 * kk];
                         int y = X[2 * kk + 1];
-                        float arg1x = X_grid[x * 2 * gridsize + 2 * y];
-                        float arg1y = X_grid[x * 2 * gridsize + 2 * y + 1];
-                        k_star0[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star0, &y_star0);
-                        k_star1[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star1, &y_star1);
-                        k_star2[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star2, &y_star2);
-                        k_star3[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star3, &y_star3);
-                        k_star4[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star4, &y_star4);
-                        k_star5[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star5, &y_star5);
-                        k_star6[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star6, &y_star6);
-                        k_star7[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star7, &y_star7);
+                        arg1x = _mm256_set1_ps(X_grid[x * 2 * gridsize + 2 * y]);
+                        arg1y = _mm256_set1_ps(X_grid[x * 2 * gridsize + 2 * y + 1]);
+                        // k_star0[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star0, &y_star0);
+                        // k_star1[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star1, &y_star1);
+                        // k_star2[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star2, &y_star2);
+                        // k_star3[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star3, &y_star3);
+                        // k_star4[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star4, &y_star4);
+                        // k_star5[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star5, &y_star5);
+                        // k_star6[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star6, &y_star6);
+                        // k_star7[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star7, &y_star7);
+                        _mm256_storeu_ps(&k_star[8 * i], kernel2_baseline_vect(arg1x, arg1y, x_star, y_star));
                     }
                     cholesky_solve2_vect(n, n, result, k_star0, k_star1, k_star2, k_star3, k_star4, k_star5, k_star6, k_star7, v1, 1);
                 }
@@ -450,9 +458,6 @@ int main() {
 //    }
 
     //cholesky(PSD, n-2, n);
-
-
-
 
 
 
