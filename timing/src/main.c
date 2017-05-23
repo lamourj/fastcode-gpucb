@@ -11,13 +11,13 @@
 
 // ONLY CHANGE THIS
 #include "../../src/gpucb.h"
-const int N_MIN = 480; // min meshgrid size
-const int N_MAX = 520; // max meshgrid size
-const int N_STEP = 8; // 
-const int ITER_MIN = 20; // min number of iterations
-const int ITER_MAX = 20; // min number of iterations
+const int N_MIN = 200; // min meshgrid size
+const int N_MAX = 1000; // max meshgrid size
+const int N_STEP = 100; // 
+const int ITER_MIN = 50; // min number of iterations
+const int ITER_MAX = 50; // min number of iterations
 const int ITER_STEP = 20; // min number of iterations
-const int NUM_RUNS = 1;
+const int NUM_RUNS = 3;
 
 // DO NOT CHANGE THE FOLLOWING LINES
 int main() {
@@ -33,7 +33,8 @@ int main() {
 		char filename[50] = "";
 		printf("the tag is:");
 		printf("%s",*tag);
-		strcpy(filename, *tag);
+		strcpy(filename, "results/");
+		strcat(filename, *tag);
 		strcat(filename, "_N");
 		strcat(filename, ".csv");
 
@@ -60,8 +61,11 @@ int main() {
 		n = N_MIN;
 		FILE *fp;
 		char filename[50];
-		strcpy(filename, *tag);
-		strcat(filename, "_N");
+		printf("the tag is:");
+		printf("%s",*tag);
+		strcpy(filename, "results/");
+		strcat(filename, *tag);
+		strcat(filename, "_I");
 		strcat(filename, ".csv");
 
 	   	fp = fopen(filename, "w+");
