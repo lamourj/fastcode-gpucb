@@ -2,8 +2,23 @@
 
 #ifndef FASTCODE_GPUCB_GPUCB0_H
 #define FASTCODE_GPUCB_GPUCB0_H
-
 #include <stdbool.h>
+double GRID_MIN_;
+double GRID_INC_;
+double BETA_;
+extern const char *tag[30];
+// Allocate memory
+double *T_;
+int *X_;
+double *X_grid_;
+bool *sampled_;
+double *mu_;
+double *sigma_;
+double *K_;
+double *L_;
+
+int I_;
+int N_;
 
 double function_baseline(double x, double y);
 
@@ -34,7 +49,11 @@ void gpucb_initialized_baseline(int maxIter,
 
 int gpucb_baseline(int maxIter, int n, double grid_min, double grid_inc);
 
-void cholesky_baseline(double *A, int n, int size);
+void initialize(const int, const int);
+void run();
+void clean();
+
+void cholesky_baseline(double *A, double *A_T, int n, int size);
 
 void incremental_cholesky_baseline(float *A, int n1, int n2, int size);
 

@@ -4,6 +4,40 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdlib.h>
+
+const char *tag[30] = {"baseline-comp-chol"};
+void initialize(const int I, const int N){
+    BETA_ = 100;
+    GRID_MIN_ = -6;
+    GRID_INC_ = 0.025;
+    //tag = "baseline";
+    //tag = (char*)malloc((strlen(tmp)+1) * sizeof(char));
+
+    I_ = I;
+    N_ = N;
+    T_ = (double *) malloc(I * sizeof(double));
+    X_ = (int *) malloc(2 * I * sizeof(int));
+    X_grid_ = (double *) malloc(2 * N * N * sizeof(double));
+    sampled_ = (bool *) malloc(N * N * sizeof(bool));
+    mu_ = (double *) malloc(N * N * sizeof(double));
+    sigma_ = (double *) malloc(N * N * sizeof(double));
+    K_ = (double *) malloc(I * I * sizeof(double));
+    L_ = (double *) malloc(I * I * sizeof(double));
+
+    // Initialize matrices
+    for (int i = 0; i < N*N; i++) {
+        sampled_[i] = false;
+        mu_[i] = 0;
+        sigma_[i] = 0.5;
+    }
+
+    if (T_ == 0 || X_ == 0 || X_grid_ == 0 || sampled_ == 0 || mu_ == 0 || sigma_ == 0 || K_ == 0 || L_ == 0) {
+        printf("ERROR: Out of memory\n");
+    }
+
+    initialize_meshgrid_baseline(X_grid_, N_, GRID_MIN_, GRID_INC_);
+}
 
 double function_baseline(double x, double y) {
     // double t = sin(x) + cos(y);
@@ -72,82 +106,22 @@ void initialize_meshgrid_baseline(double *X_grid, int n, double min, double inc)
     }
 }
 
-void gpucb_initialized_baseline(int maxIter,
-                                int n,
-                                double *T,
-                                int *X,
-                                double *X_grid,
-                                bool *sampled,
-                                double *mu,
-                                double *sigma,
-                                double beta) {
-    for (int t = 0; t < maxIter; t++) {
-        learn_baseline(X_grid, sampled, X, T, t, mu, sigma, kernel2_baseline, beta, n);
+void run(){
+    for (int t = 0; t < I_; t++) {
+        learn_baseline(X_grid_, sampled_, X_, T_, t, mu_, sigma_, kernel2_baseline, BETA_, N_);
     }
 }
 
-int gpucb_baseline(int maxIter, int n, double grid_min, double grid_inc) {
+void clean(){
+    free(T_);
+    free(X_);
+    free(X_grid_);
+    free(sampled_);
+    free(mu_);
+    free(sigma_);
+    free(K_);
+    free(L_);
 
-    // Allocations
-    double T[maxIter];
-    int X[2 * maxIter];
-    double X_grid[2 * n * n];
-    bool sampled[n * n];
-    double mu[n * n];
-    double sigma[n * n];
-    const double beta = 100;
-
-    // Initializations
-    for (int i = 0; i < n * n; i++) {
-        sampled[i] = false;
-        mu[i] = 0;
-        sigma[i] = 0.5;
-    }
-    initialize_meshgrid_baseline(X_grid, n, grid_min, grid_inc);
-
-
-    // -------------------------------------------------------------
-    //                  Done with initializations
-    // -------------------------------------------------------------
-
-    gpucb_initialized_baseline(maxIter, n, T, X, X_grid, sampled, mu, sigma, beta);
-
-    // -------------------------------------------------------------
-    //           Done with gpucb; rest is output writing
-    // -------------------------------------------------------------
-
-    FILE *f = fopen("mu_c.txt", "w");
-    bool printMuConsole = false;
-    bool printSigmaConsole = false;
-    if (printMuConsole) {
-        printf("Mu matrix after training: \n");
-    }
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            fprintf(f, "%lf, ", mu[i * n + j]);
-            if (printMuConsole) {
-                printf("%.5lf ", mu[i * n + j]);
-            }
-        }
-        fprintf(f, "\n");
-        if (printMuConsole) {
-            printf("\n");
-        }
-    }
-    fclose(f);
-
-    if (printSigmaConsole) {
-        printf("\n\nSigma matrix after training: \n");
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                printf("%.5lf ", sigma[i * n + j]);
-            }
-            printf("\n");
-        }
-    }
-
-
-    return 0;
 }
 
 /*
@@ -157,7 +131,7 @@ int gpucb_baseline(int maxIter, int n, double grid_min, double grid_inc) {
     n:    The size of the data in matrix A to decompose
     size: The actual size of the rows
  */
-void cholesky_baseline(double *A, int n, int size) {
+void cholesky_baseline(double *A, double *A_T, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
         // Update the off diagonal entries first.
@@ -166,6 +140,7 @@ void cholesky_baseline(double *A, int n, int size) {
                 A[size * i + j] -= A[size * i + k] * A[size * j + k];
             }
             A[size * i + j] /= A[size * j + j];
+            A_T[size*j + i] = A[size * i + j];
         }
 
         // Update the diagonal entry of this row.
@@ -173,6 +148,7 @@ void cholesky_baseline(double *A, int n, int size) {
             A[size * i + i] -= A[size * i + k] * A[size * i + k];
         }
         A[size * i + i] = sqrt(A[size * i + i]);
+        A_T[size * i + i] = A[size * i + i];
     }
 }
 
@@ -297,7 +273,7 @@ void gp_regression_baseline(double *X_grid,
     }
 
     // 2. Cholesky
-    cholesky_baseline(K, t_gp, t_gp);
+    cholesky_baseline(K, L_T, t_gp, t_gp);
 
     double *L = K;
 
@@ -309,7 +285,7 @@ void gp_regression_baseline(double *X_grid,
 
     cholesky_solve2_baseline(t_gp, L, T, x, 1);
 
-    transpose_baseline(L, L_T, t_gp); // TODO: Maybe do this more efficient
+    //transpose_baseline(L, L_T, t_gp); // TODO: Maybe do this more efficient
     cholesky_solve2_baseline(t_gp, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
