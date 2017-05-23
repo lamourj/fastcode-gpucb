@@ -177,6 +177,115 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) 
         }
     }
 }
+void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower) {
+    // TODO: Test
+    // TODO: Unroll over i ? Blocking (LU and x accessed several times)
+
+    if (lower == 1) {
+        float sum0 = 0.;
+        for (int i = 0; i < d; ++i) {
+            float sum1 = 0.;
+            float sum2 = 0.;
+            float sum3 = 0.;
+
+            for (int k = 0; k < i; k += 4) {
+                const int isizek = i * size + k;
+                const float lu0 = LU[isize];
+                const float xk0 = x[k];
+
+                const float lu1 = LU[isizek + 1];
+                const float xk1 = x[k + 1];
+
+                const float lu2 = LU[isizek + 2];
+                const float xk2 = x[k + 2];
+
+                const float lu3 = LU[isizek + 3];
+                const float xk3 = x[k + 3];
+
+                const float term0 = lu0 * xk0;
+                const float term1 = lu1 * xk1;
+                const float term2 = lu2 * xk2;
+                const float term3 = lu3 * xk3;
+
+                sum0 += term0;
+                sum1 += term1;
+                sum2 += term2;
+                sum3 += term3;
+            }
+            const float bi = b[i];
+            const float lu = LU[i * size + i];
+
+            const float sum01 = sum0 + sum1;
+            const float sum23 = sum2 + sum3;
+            const float sum0123 = sum01 + sum23;
+
+            float sumRest = 0;
+            for (int k = 4 * (i / 4); k < i; k++) {
+                const float lu0 = LU[i * size + k];
+                const float xk0 = x[k];
+                const float term0 = lu0 * xk0;
+                sumRest += term0;
+            }
+
+            const float sum = sum0123 + sumRest;
+            const float num = bi - sum;
+            const float xi = num / lu;
+            x[i] = xi;
+        }
+    } else {
+        for (int i = d - 1; i >= 0; --i) {
+            float sum0 = 0.;
+            float sum1 = 0.;
+            float sum2 = 0.;
+            float sum3 = 0.;
+
+            for (int k = i + 1; k < d; ++k) {
+                const int isizek = i * size + k;
+
+                const float lu0 = LU[isizek];
+                const float xk0 = x[k];
+
+                const float lu1 = LU[isizek + 1];
+                const float xk1 = x[k + 1];
+
+                const float lu2 = LU[isizek + 2];
+                const float xk2 = x[k + 2];
+
+                const float lu3 = LU[isizek + 3];
+                const float xk3 = x[k + 3];
+
+                const float term0 = lu0 * xk0;
+                const float term1 = lu1 * xk1;
+                const float term2 = lu2 * xk2;
+                const float term3 = lu3 * xk3;
+
+                sum0 += term0;
+                sum1 += term1;
+                sum2 += term2;
+                sum3 += term3;
+            }
+
+            float sumRest = 0;
+            const float sum01 = sum0 + sum1;
+            const float sum23 = sum2 + sum3;
+            const float sum0123 = sum01 + sum23;
+            const float bi = b[i];
+            const float lu = LU[i * size + i];
+
+
+            for (int k = 4 * ((i + 1) / 4); k < d; k++) {
+                const float lu0 = LU[i * size + k];
+                const float xk0 = x[k];
+                const float term0 = lu0 * xk0;
+                sumRest += term0;
+            }
+            const float num = bi - sum;
+            const float xi = num / lu;
+            x[i] = xi;
+        }
+    }
+
+}
 
 
 /*
