@@ -7,10 +7,24 @@
 #include <x86intrin.h>
 
 
-double kernel2_baseline(double *x1, double *y1, double *x2, double *y2) {
+float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
     // RBF kernel
-    double sigma = 1;
-    return exp(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
+    float sigma = 1;
+    return (float) exp(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
+}
+
+
+__m256 kernel2_baseline_vect(__m256 x1, __m256 y1, __m256 x2, __m256 y2) {
+    // RBF kernel
+    float sigma = 1;
+    __m256 v1, v2, v3, v4;
+    __m256 sigma = _mm256_set1_ps(2.0);
+    x1 = _mm256_sub_ps(x1, x2);
+    y1 = _mm256_sub_ps(y1, y2);
+    x1 = _mm256_mul_ps(x1, x1);
+    y1 = _mm256_fmadd_ps(y1, y1, x1);
+    y1 = _mm256_sub_ps(_mm256_set1_ps(0.0), y1);
+    return _mm256_div_ps(y1, sigma);
 }
 
 /*
@@ -20,7 +34,7 @@ double kernel2_baseline(double *x1, double *y1, double *x2, double *y2) {
     n:    The size of the data in matrix A to decompose
     size: The actual size of the rows
  */
-void cholesky(double *A, double  *result, int n, int size) {
+void cholesky(float *A, float  *result, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
         // Update the off diagonal entries first.
@@ -53,7 +67,7 @@ void cholesky(double *A, double  *result, int n, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky(double *A, double *result, int n1, int n2, int size) {
+void incremental_cholesky(float *A, float *result, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
@@ -85,10 +99,10 @@ void incremental_cholesky(double *A, double *result, int n1, int n2, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky_vect(double *A, double *result, int n1, int n2, int size) {
-    __m256d v1, v2, acc;
+void incremental_cholesky_vect(float *A, float *result, int n1, int n2, int size) {
+    __m256 v1, v2, acc;
 
-    double acc1;
+    float acc1;
     for (int i = n1; i < n2; ++i) {
 
         // Update the off diagonal entries.
@@ -96,13 +110,13 @@ void incremental_cholesky_vect(double *A, double *result, int n1, int n2, int si
         for (int j = 0; j < i; ++j) {
 
             int k;
-            acc = _mm256_setzero_pd();
+            acc = _mm256_setzero_ps();
             acc1 = 0.0;
 
-            for (k = 0; k + 3 < j; k += 4) {
-                v1 = _mm256_loadu_pd(&result[size * j + k]);
-                v2 = _mm256_loadu_pd(&result[size * i + k]);
-                acc = _mm256_fmadd_pd(v1, v2, acc);
+            for (k = 0; k + 7 < j; k += 8) {
+                v1 = _mm256_loadu_ps(&result[size * j + k]);
+                v2 = _mm256_loadu_ps(&result[size * i + k]);
+                acc = _mm256_fmadd_ps(v1, v2, acc);
             }
 
             while (k < j) {
@@ -117,11 +131,11 @@ void incremental_cholesky_vect(double *A, double *result, int n1, int n2, int si
 
         result[size * i + i] = A[size * i + i];
         int k;
-        acc = _mm256_setzero_pd();
+        acc = _mm256_setzero_ps();
         acc1 = 0.0;
-        for (k = 0; k + 3< i; k+=4) {
-            v1 = _mm256_loadu_pd(&result[size * i + k]);
-            acc = _mm256_fmadd_pd(v1, v1, acc);
+        for (k = 0; k + 7< i; k+=8) {
+            v1 = _mm256_loadu_ps(&result[size * i + k]);
+            acc = _mm256_fmadd_ps(v1, v1, acc);
             //result[size * i + i] -= result[size * i + k] * result[size * i + k];
         }
         while (k < i) {
@@ -143,10 +157,10 @@ void incremental_cholesky_vect(double *A, double *result, int n1, int n2, int si
  *      x: vector to put result in
  *      lower: if one the lower triangle system is solved, else the upper triangle system is solved.
 */
-void cholesky_solve2(int d, int size, double *LU, double *b, double *x, int lower) {
+void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) {
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
-            double sum = 0.;
+            float sum = 0.;
             for (int k = 0; k < i; ++k) {
                 sum += LU[i * size + k] * x[k];
             }
@@ -154,7 +168,7 @@ void cholesky_solve2(int d, int size, double *LU, double *b, double *x, int lowe
         }
     } else {
         for (int i = d - 1; i >= 0; --i) {
-            double sum = 0.;
+            float sum = 0.;
             for (int k = i + 1; k < d; ++k) {
                 sum += LU[i * size + k] * x[k];
             }
@@ -171,45 +185,52 @@ void cholesky_solve2(int d, int size, double *LU, double *b, double *x, int lowe
  *      size: the actual size of the matrix
  *      LU: matrix
  *      b: right hand side
- *      x: matrix (d * 4) to put result in
+ *      x: matrix (d * 8) to put result in
  *      lower: if one the lower triangle system is solved, else the upper triangle system is solved.
 */
-void cholesky_solve2_vect(int d, int size, double *LU, double *b0, double *b1, double *b2, double *b3, double *x, int lower) {
-    __m256d vsum, vsum1, vsum2, vsum3, vsum4, v1, v2, v3, v4, v5;
+void cholesky_solve2_vect(int d, int size, float *LU, float *b0, float *x, int lower) {
+    __m256 vsum, vsum1, vsum2, vsum3, vsum4, v1, v2, v3, v4, v5;
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
-            vsum1 = _mm256_setzero_pd();
-            vsum2 = _mm256_setzero_pd();
-            vsum3 = _mm256_setzero_pd();
-            vsum4 = _mm256_setzero_pd();
+            vsum1 = _mm256_setzero_ps();
+            vsum2 = _mm256_setzero_ps();
+            vsum3 = _mm256_setzero_ps();
+            vsum4 = _mm256_setzero_ps();
             int k;
             for (k = 0; k + 3 < i; k+=4) {
-                v1 = _mm256_set1_pd(LU[i * size + k]);
-                v2 = _mm256_set1_pd(LU[i * size + k + 1]);
-                v3 = _mm256_set1_pd(LU[i * size + k + 2]);
-                v4 = _mm256_set1_pd(LU[i * size + k + 3]);
-                v5 = _mm256_loadu_pd(&x[4 * k]);
+                v1 = _mm256_set1_ps(LU[i * size + k]);
+                v2 = _mm256_set1_ps(LU[i * size + k + 1]);
+                v3 = _mm256_set1_ps(LU[i * size + k + 2]);
+                v4 = _mm256_set1_ps(LU[i * size + k + 3]);
+                v5 = _mm256_loadu_ps(&x[8 * k]);
 
 
-                vsum1 = _mm256_fmadd_pd(v1, v5, vsum1);
-                vsum2 = _mm256_fmadd_pd(v2, v5, vsum2);
-                vsum3 = _mm256_fmadd_pd(v3, v5, vsum3);
-                vsum4 = _mm256_fmadd_pd(v4, v5, vsum4);
+                vsum1 = _mm256_fmadd_ps(v1, v5, vsum1);
+                vsum2 = _mm256_fmadd_ps(v2, v5, vsum2);
+                vsum3 = _mm256_fmadd_ps(v3, v5, vsum3);
+                vsum4 = _mm256_fmadd_ps(v4, v5, vsum4);
             }
-            vsum1 = _mm256_add_pd(vsum1, vsum2);
-            vsum3 = _mm256_add_pd(vsum3, vsum4);
-            vsum1 = _mm256_add_pd(vsum1, vsum3);
+            vsum1 = _mm256_add_ps(vsum1, vsum2);
+            vsum3 = _mm256_add_ps(vsum3, vsum4);
+            vsum1 = _mm256_add_ps(vsum1, vsum3);
             while (k < i) {
-                v1 = _mm256_set1_pd(LU[i * size + k]);
-                v5 = _mm256_loadu_pd(&x[4 * k]);
+                v1 = _mm256_set1_ps(LU[i * size + k]);
+                v5 = _mm256_loadu_ps(&x[8 * k]);
 
-                vsum1 = _mm256_fmadd_pd(v1, v5, vsum1);
+                vsum1 = _mm256_fmadd_ps(v1, v5, vsum1);
                 k += 1;
             }
-            x[i * 4    ] = (b0[i] - vsum1[0]) / LU[i * size + i];
-            x[i * 4 + 1] = (b1[i] - vsum1[1]) / LU[i * size + i];
-            x[i * 4 + 2] = (b2[i] - vsum1[2]) / LU[i * size + i];
-            x[i * 4 + 3] = (b3[i] - vsum1[3]) / LU[i * size + i];
+            __m256 b = _mm256_loadu_ps(*b0[8 * i]);
+            vsum1 = _mm256_sub_ps(b, vsum1);
+            _mm256_storeu_ps(&x[8 *i], _mm256_div_ps(vsum1, _mm256_set1(LU[i * size + i])));
+//            x[i * 8    ] = (b0[i] - vsum1[0]) / LU[i * size + i];
+//            x[i * 8 + 1] = (b1[i] - vsum1[1]) / LU[i * size + i];
+//            x[i * 8 + 2] = (b2[i] - vsum1[2]) / LU[i * size + i];
+//            x[i * 8 + 3] = (b3[i] - vsum1[3]) / LU[i * size + i];
+//            x[i * 8 + 4] = (b4[i] - vsum1[4]) / LU[i * size + i];
+//            x[i * 8 + 5] = (b5[i] - vsum1[5]) / LU[i * size + i];
+//            x[i * 8 + 6] = (b6[i] - vsum1[6]) / LU[i * size + i];
+//            x[i * 8 + 7] = (b7[i] - vsum1[7]) / LU[i * size + i];
         }
     } else {
         for (int i = d - 1; i >= 0; --i) {
@@ -228,20 +249,20 @@ void cholesky_solve2_vect(int d, int size, double *LU, double *b0, double *b1, d
 }
 
 
-double frand() {
-    return (double) rand() / (double) RAND_MAX * 100;
+float frand() {
+    return (float) rand() / (float) RAND_MAX * 100;
 }
 
 
 int main() {
 
     int n = 20;
-    int gridsize = 100;
+    int gridsize = 200;
 
 
-    double A[n * n];
-    double result[n * n];
-    double PSD[n * n];
+    float A[n * n];
+    float result[n * n];
+    float PSD[n * n];
     gsl_matrix *L = gsl_matrix_alloc(n, n);
 
     // Make a random PSD matrix:
@@ -261,13 +282,13 @@ int main() {
     }
 
     // Initialize the grid:
-    double X_grid[gridsize * gridsize * 2];
-    double min = -5;
-    double inc = 0.1;
+    float X_grid[gridsize * gridsize * 2];
+    float min = -5;
+    float inc = 0.1;
 
-    double x = min;
+    float x = min;
     for (int i = 0; i < gridsize; i++) {
-        double y = min;
+        float y = min;
         for (int j = 0; j < gridsize; j++) {
             X_grid[i * 2 * gridsize + 2 * j] = y;
             X_grid[i * 2 * gridsize + 2 * j + 1] = x;
@@ -278,15 +299,15 @@ int main() {
 
 
     // Initialize the sampled points:
-    double X[n];
-    for (double i=0; i<n; ++i) {
+    float X[n];
+    for (float i=0; i<n; ++i) {
         int j = (int) i;
         X[j] = sin(i);
     }
 
 
     // Run the timing experiment for different grid sizes:
-    for (int i = 20; i < gridsize; i+=4) {
+    for (int i = 24; i < gridsize; i+=8) {
 
         for (int j = 0; j < n; ++j) {
             for (int k = 0; k < n; ++k) {
@@ -296,14 +317,14 @@ int main() {
 
 
         clock_t start, end;
-        double CPU_time, CPU_optimized;
+        float CPU_time, CPU_optimized;
 
 
         incremental_cholesky(PSD, result, 0, n, n);
 
 
-        double v[n];
-        double v1[n*4];
+        float v[n];
+        float v1[n*8];
 
         start = clock();
 
@@ -318,15 +339,15 @@ int main() {
             {
                 for (int j = 0; j < i; j++) // for all points in X_grid
                 {
-                    double x_star = X_grid[2 * gridsize * l + 2 * j]; // Current grid point that we are looking at
-                    double y_star = X_grid[2 * gridsize * l + 2 * j + 1];
-                    double k_star[n];
+                    float x_star = X_grid[2 * gridsize * l + 2 * j]; // Current grid point that we are looking at
+                    float y_star = X_grid[2 * gridsize * l + 2 * j + 1];
+                    float k_star[n];
 
                     for (int k = 0; k < n; k++) {
                         int x = X[2 * k];
                         int y = X[2 * k + 1];
-                        double arg1x = X_grid[x * 2 * gridsize + 2 * y];
-                        double arg1y = X_grid[x * 2 * gridsize + 2 * y + 1];
+                        float arg1x = X_grid[x * 2 * gridsize + 2 * y];
+                        float arg1y = X_grid[x * 2 * gridsize + 2 * y + 1];
                         k_star[k] = kernel2_baseline(&arg1x, &arg1y, &x_star, &y_star);
                     }
 
@@ -348,11 +369,11 @@ int main() {
         for (int t=0; t<20; ++t) {
             for (int l = 0; l < i; l++) // for all points in X_grid
             {
-                for (int j = 0; j < i; j += 4) // for all points in X_grid
+                for (int j = 0; j < i; j += 8) // for all points in X_grid
                 {
-                    double x_star0, x_star1, x_star2, x_star3;
-                    double y_star0, y_star1, y_star2, y_star3;
-                    double k_star0[n], k_star1[n], k_star2[n], k_star3[n];
+                    float x_star0, x_star1, x_star2, x_star3, x_star4, x_star5, x_star6, x_star7;
+                    float y_star0, y_star1, y_star2, y_star3, y_star4, y_star5, y_star6, y_star7;
+                    float k_star0[n], k_star1[n], k_star2[n], k_star3[n], k_star4[n], k_star5[n], k_star6[n], k_star7[n];
 
                     x_star0 = X_grid[2 * gridsize * l + 2 * (j)];
                     y_star0 = X_grid[2 * gridsize * l + 2 * (j) + 1];
@@ -362,18 +383,37 @@ int main() {
                     y_star2 = X_grid[2 * gridsize * l + 2 * (j + 2) + 1];
                     x_star3 = X_grid[2 * gridsize * l + 2 * (j + 3)];
                     y_star3 = X_grid[2 * gridsize * l + 2 * (j + 3) + 1];
+                    x_star4 = X_grid[2 * gridsize * l + 2 * (j + 4)];
+                    y_star4 = X_grid[2 * gridsize * l + 2 * (j + 4) + 1];
+                    x_star5 = X_grid[2 * gridsize * l + 2 * (j + 5)];
+                    y_star5 = X_grid[2 * gridsize * l + 2 * (j + 5) + 1];
+                    x_star6 = X_grid[2 * gridsize * l + 2 * (j + 6)];
+                    y_star6 = X_grid[2 * gridsize * l + 2 * (j + 6) + 1];
+                    x_star7 = X_grid[2 * gridsize * l + 2 * (j + 7)];
+                    y_star7 = X_grid[2 * gridsize * l + 2 * (j + 7) + 1];
+
+                    __m256 v1, v2, x_star, y_star;
+
+                    v1 = _mm256_loadu_ps(X_grid[2 * gridsize * l + 2 * j]);
+                    v2 = _mm256_loadu_ps(X_grid[2 * gridsize * l + 2 * (j + 4)]);
+
+                    //x_star = _mm256_blendv_ps()
 
                     for (int kk = 0; kk < n; kk++) {
                         int x = X[2 * kk];
                         int y = X[2 * kk + 1];
-                        double arg1x = X_grid[x * 2 * gridsize + 2 * y];
-                        double arg1y = X_grid[x * 2 * gridsize + 2 * y + 1];
+                        float arg1x = X_grid[x * 2 * gridsize + 2 * y];
+                        float arg1y = X_grid[x * 2 * gridsize + 2 * y + 1];
                         k_star0[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star0, &y_star0);
                         k_star1[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star1, &y_star1);
                         k_star2[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star2, &y_star2);
                         k_star3[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star3, &y_star3);
+                        k_star4[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star4, &y_star4);
+                        k_star5[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star5, &y_star5);
+                        k_star6[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star6, &y_star6);
+                        k_star7[kk] = kernel2_baseline(&arg1x, &arg1y, &x_star7, &y_star7);
                     }
-                    cholesky_solve2_vect(n, n, result, k_star0, k_star1, k_star2, k_star3, v1, 1);
+                    cholesky_solve2_vect(n, n, result, k_star0, k_star1, k_star2, k_star3, k_star4, k_star5, k_star6, k_star7, v1, 1);
                 }
             }
         }
