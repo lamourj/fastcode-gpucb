@@ -97,14 +97,8 @@ endif()
 
 
 set(SOURCE_FILES
-    ../../src/gpucb.h
-    ../../src/gpucb.c
-    ../../src/mathHelpers.h
-    ../../src/mathHelpers.c
-    ../../src/gpucb3.h
-    ../../src/gpucb3.c
-    ../../src/mathHelpers3.h
-    ../../src/mathHelpers3.c
+    ../../src/cholesky.h
+    ../../src/cholesky.c
     src/main.c
     src/main.h
 )

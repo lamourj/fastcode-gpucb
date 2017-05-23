@@ -2,8 +2,8 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "time.h"
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_matrix.h>
+// #include <gsl/gsl_linalg.h>
+// #include <gsl/gsl_matrix.h>
 #include <x86intrin.h>
 #include "immintrin.h"
 
@@ -236,11 +236,11 @@ void cholesky_solve2_vect(int d, int size, float *LU, float *b0, float *x, int l
         }
     } else {
         for (int i = d - 1; i >= 0; --i) {
-            vsum = _mm256_setzero_pd();
+            vsum = _mm256_setzero_ps();
             for (int k = i + 1; k < d; ++k) {
                 v1 = _mm256_set1_ps(LU[i * size + k]);
                 v2 = _mm256_loadu_ps(&x[4 * k]);
-                vsum = _mm256_fmadd_pd(v1, v2, vsum);
+                vsum = _mm256_fmadd_ps(v1, v2, vsum);
             }
 //            x[i * 4    ] = (b0[i] - vsum[0]) / LU[i * size + i];
 //            x[i * 4 + 1] = (b1[i] - vsum[1]) / LU[i * size + i];
@@ -250,26 +250,34 @@ void cholesky_solve2_vect(int d, int size, float *LU, float *b0, float *x, int l
     }
 }
 
+float frand() {
+    return (float) rand() / (float) RAND_MAX;
+}
 
-
-char* tag = "cholesky";
+const char *tag[50] = {"cholesky_solve2_vect"};
 
 int d;
 int size;
 float *LU;
 float *result;
 float *b;
+float *b_smal;
 float *x;
-int lower;
+float *x_smal;
 
 
 void initialize(const int I, const int N) {
     d = I;
     size = I;
-    LU = malloc(sizeof(double) * I * I);
-    result = malloc(sizeof(double) * I * I);
+    LU     = malloc(sizeof(float) * I * I);
+    result = malloc(sizeof(float) * I * I);
+    b      = malloc(sizeof(float) * 8 * I);
+    b_smal = malloc(sizeof(float) * I);
+    x      = malloc(sizeof(float) * 8 * I);
+    x_smal = malloc(sizeof(float) * I);
 
-    float A[n * n];
+    int n = I;
+    float A[I * I];
     // Make a random PSD matrix:
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
@@ -286,25 +294,39 @@ void initialize(const int I, const int N) {
         }
     }
 
+    // Make the righthand side
+    for (float i=0; i<n*8; ++i) {
+        int j = (int) i;
+        b[j] = sin(i);
+    }
+
+    for (float i=0; i<n; ++i) {
+        int j = (int) i;
+        b_smal[j] = sin(i);
+    }
 }
 
 
 void run() {
-    incremental_cholesky(LU, result, 0, d, size);
+    // for (int i=0; i<8; ++i) {
+    //     cholesky_solve2(d, size, LU, b_smal, x, 1);
+    // }
+    cholesky_solve2_vect(d, size, LU, b, x, 1);
 }
 
 void clean(){
     free(LU);
     free(result);
+    free(b);
+    free(b_smal);
+    free(x);
+    free(x_smal);
 }
 
 
 
 
-
-float frand() {
-    return (float) rand() / (float) RAND_MAX;
-}
+/*
 
 
 int main() {
@@ -558,8 +580,10 @@ int main() {
 //    }
 
     //cholesky(PSD, n-2, n);
-*/
+
 
 
     return 0;
 }
+
+*/

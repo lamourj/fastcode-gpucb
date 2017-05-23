@@ -10,13 +10,13 @@
 
 
 // ONLY CHANGE THIS
-#include "../../src/gpucb.h"
+#include "../../src/cholesky.h"
 const int N_MIN = 200; // min meshgrid size
-const int N_MAX = 1000; // max meshgrid size
+const int N_MAX = 200; // max meshgrid size
 const int N_STEP = 100; // 
-const int ITER_MIN = 50; // min number of iterations
-const int ITER_MAX = 50; // min number of iterations
-const int ITER_STEP = 20; // min number of iterations
+const int ITER_MIN = 5; // min number of iterations
+const int ITER_MAX = 100; // min number of iterations
+const int ITER_STEP = 5; // min number of iterations
 const int NUM_RUNS = 3;
 
 // DO NOT CHANGE THE FOLLOWING LINES
@@ -57,7 +57,9 @@ int main() {
 		fclose(fp);
 	}
 	
+	printf("itermin: %d\n", ITER_MIN);
 	if(ITER_MIN != ITER_MAX){
+		printf("Comes here\n");
 		n = N_MIN;
 		FILE *fp;
 		char filename[50];
