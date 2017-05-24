@@ -190,7 +190,7 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
 
             for (int k = 0; k < i; k += 4) {
                 const int isizek = i * size + k;
-                const float lu0 = LU[isize];
+                const float lu0 = LU[isizek];
                 const float xk0 = x[k];
 
                 const float lu1 = LU[isizek + 1];
@@ -279,6 +279,7 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
                 const float term0 = lu0 * xk0;
                 sumRest += term0;
             }
+            const float sum = sum0123 + sumRest;
             const float num = bi - sum;
             const float xi = num / lu;
             x[i] = xi;
@@ -363,7 +364,7 @@ float frand() {
     return (float) rand() / (float) RAND_MAX;
 }
 
-const char *tag[50] = {"cholesky_solve2_vect"};
+const char *tag[50] = {"cholesky_solve2_opt"};
 
 int d;
 int size;
@@ -420,7 +421,7 @@ void run() {
     // for (int i=0; i<8; ++i) {
     //     cholesky_solve2(d, size, LU, b_smal, x, 1);
     // }
-    cholesky_solve2_vect(d, size, LU, b, x, 1);
+    cholesky_solve2_opt(d, size, LU, b_smal, x_smal, 1);
 }
 
 void clean(){
@@ -435,9 +436,6 @@ void clean(){
 
 
 
-/*
-
-
 int main() {
 
     int n = 10;
@@ -447,7 +445,7 @@ int main() {
     float A[n * n];
     float result[n * n];
     float PSD[n * n];
-    gsl_matrix *L = gsl_matrix_alloc(n, n);
+    // gsl_matrix *L = gsl_matrix_alloc(n, n);
 
     // Make a random PSD matrix:
     for (int i = 0; i < n; ++i) {
@@ -483,43 +481,32 @@ int main() {
 
 
     // Initialize the sampled points:
-    float B[n*8];
-    for (float i=0; i<n*8; ++i) {
+    float b[n];
+    for (float i=0; i<n; ++i) {
         int j = (int) i;
-        B[j] = sin(i);
+        b[j] = sin(i);
     }
-
+    float v[n];
 
 
 
     // Validation:
 
-    for (int i=0 ; i<8; ++i) {
-        float b[n];
-        float v[n];
-        for (int j=0; j<n; ++j) {
-            b[j] = B[j*8 + i];
-        }
 
-        cholesky_solve2(n, n, PSD, b, v, 1);
-        for (int j=0; j<n; ++j) {
-            printf("%f ", v[j]);
-        }
-        printf("\n");
+    cholesky_solve2(n, n, PSD, b, v, 1);
+    printf("The vectorized version\n");
+    for (int i=0; i<8; ++i) {
+        printf("%f ", v[i]);
     }
 
-    float v_1[n*8];
 
-    cholesky_solve2_vect(n, n, PSD, B, v_1, 1);
+    cholesky_solve2_opt(n, n, PSD, b, v, 1);
 
     printf("The vectorized version\n");
     for (int i=0; i<8; ++i) {
-        for (int j=0; j<n; j++) {
-            printf("%f ", v_1[j*8+i]);
-        }
-        printf("\n");
+        printf("%f ", v[i]);
     }
-
+}
 
 /*
 
