@@ -177,6 +177,116 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) 
         }
     }
 }
+void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower) {
+    // TODO: Test
+    // TODO: Unroll over i ? Blocking (LU and x accessed several times)
+
+    if (lower == 1) {
+        float sum0 = 0.;
+        for (int i = 0; i < d; ++i) {
+            float sum1 = 0.;
+            float sum2 = 0.;
+            float sum3 = 0.;
+
+            for (int k = 0; k < i; k += 4) {
+                const int isizek = i * size + k;
+                const float lu0 = LU[isizek];
+                const float xk0 = x[k];
+
+                const float lu1 = LU[isizek + 1];
+                const float xk1 = x[k + 1];
+
+                const float lu2 = LU[isizek + 2];
+                const float xk2 = x[k + 2];
+
+                const float lu3 = LU[isizek + 3];
+                const float xk3 = x[k + 3];
+
+                const float term0 = lu0 * xk0;
+                const float term1 = lu1 * xk1;
+                const float term2 = lu2 * xk2;
+                const float term3 = lu3 * xk3;
+
+                sum0 += term0;
+                sum1 += term1;
+                sum2 += term2;
+                sum3 += term3;
+            }
+            const float bi = b[i];
+            const float lu = LU[i * size + i];
+
+            const float sum01 = sum0 + sum1;
+            const float sum23 = sum2 + sum3;
+            const float sum0123 = sum01 + sum23;
+
+            float sumRest = 0;
+            for (int k = 4 * (i / 4); k < i; k++) {
+                const float lu0 = LU[i * size + k];
+                const float xk0 = x[k];
+                const float term0 = lu0 * xk0;
+                sumRest += term0;
+            }
+
+            const float sum = sum0123 + sumRest;
+            const float num = bi - sum;
+            const float xi = num / lu;
+            x[i] = xi;
+        }
+    } else {
+        for (int i = d - 1; i >= 0; --i) {
+            float sum0 = 0.;
+            float sum1 = 0.;
+            float sum2 = 0.;
+            float sum3 = 0.;
+
+            for (int k = i + 1; k < d; ++k) {
+                const int isizek = i * size + k;
+
+                const float lu0 = LU[isizek];
+                const float xk0 = x[k];
+
+                const float lu1 = LU[isizek + 1];
+                const float xk1 = x[k + 1];
+
+                const float lu2 = LU[isizek + 2];
+                const float xk2 = x[k + 2];
+
+                const float lu3 = LU[isizek + 3];
+                const float xk3 = x[k + 3];
+
+                const float term0 = lu0 * xk0;
+                const float term1 = lu1 * xk1;
+                const float term2 = lu2 * xk2;
+                const float term3 = lu3 * xk3;
+
+                sum0 += term0;
+                sum1 += term1;
+                sum2 += term2;
+                sum3 += term3;
+            }
+
+            float sumRest = 0;
+            const float sum01 = sum0 + sum1;
+            const float sum23 = sum2 + sum3;
+            const float sum0123 = sum01 + sum23;
+            const float bi = b[i];
+            const float lu = LU[i * size + i];
+
+
+            for (int k = 4 * ((i + 1) / 4); k < d; k++) {
+                const float lu0 = LU[i * size + k];
+                const float xk0 = x[k];
+                const float term0 = lu0 * xk0;
+                sumRest += term0;
+            }
+            const float sum = sum0123 + sumRest;
+            const float num = bi - sum;
+            const float xi = num / lu;
+            x[i] = xi;
+        }
+    }
+
+}
 
 
 /*
@@ -254,7 +364,7 @@ float frand() {
     return (float) rand() / (float) RAND_MAX;
 }
 
-const char *tag[50] = {"cholesky_solve2_vect"};
+const char *tag[50] = {"cholesky_solve2_opt"};
 
 int d;
 int size;
@@ -311,7 +421,7 @@ void run() {
     // for (int i=0; i<8; ++i) {
     //     cholesky_solve2(d, size, LU, b_smal, x, 1);
     // }
-    cholesky_solve2_vect(d, size, LU, b, x, 1);
+    cholesky_solve2_opt(d, size, LU, b_smal, x_smal, 1);
 }
 
 void clean(){
@@ -326,9 +436,6 @@ void clean(){
 
 
 
-/*
-
-
 int main() {
 
     int n = 10;
@@ -338,7 +445,7 @@ int main() {
     float A[n * n];
     float result[n * n];
     float PSD[n * n];
-    gsl_matrix *L = gsl_matrix_alloc(n, n);
+    // gsl_matrix *L = gsl_matrix_alloc(n, n);
 
     // Make a random PSD matrix:
     for (int i = 0; i < n; ++i) {
@@ -374,43 +481,32 @@ int main() {
 
 
     // Initialize the sampled points:
-    float B[n*8];
-    for (float i=0; i<n*8; ++i) {
+    float b[n];
+    for (float i=0; i<n; ++i) {
         int j = (int) i;
-        B[j] = sin(i);
+        b[j] = sin(i);
     }
-
+    float v[n];
 
 
 
     // Validation:
 
-    for (int i=0 ; i<8; ++i) {
-        float b[n];
-        float v[n];
-        for (int j=0; j<n; ++j) {
-            b[j] = B[j*8 + i];
-        }
 
-        cholesky_solve2(n, n, PSD, b, v, 1);
-        for (int j=0; j<n; ++j) {
-            printf("%f ", v[j]);
-        }
-        printf("\n");
+    cholesky_solve2(n, n, PSD, b, v, 1);
+    printf("The vectorized version\n");
+    for (int i=0; i<8; ++i) {
+        printf("%f ", v[i]);
     }
 
-    float v_1[n*8];
 
-    cholesky_solve2_vect(n, n, PSD, B, v_1, 1);
+    cholesky_solve2_opt(n, n, PSD, b, v, 1);
 
     printf("The vectorized version\n");
     for (int i=0; i<8; ++i) {
-        for (int j=0; j<n; j++) {
-            printf("%f ", v_1[j*8+i]);
-        }
-        printf("\n");
+        printf("%f ", v[i]);
     }
-
+}
 
 /*
 
