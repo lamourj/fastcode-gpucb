@@ -443,7 +443,7 @@ void clean() {
     free(x_smal);
 }
 
-
+/*
 int main() {
 
     int n = 10;
@@ -515,7 +515,7 @@ int main() {
         printf("%f ", v[i]);
     }
 }
-
+*/
 /*
 
     // Run the timing experiment for different grid sizes:
