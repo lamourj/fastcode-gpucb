@@ -5,14 +5,16 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+
 const char *tag[10] = {"baseline"};
-void initialize(const int I, const int N){
+
+void initialize(const int I, const int N) {
     BETA_ = 100;
     GRID_MIN_ = -6;
     GRID_INC_ = 0.025;
     //tag = "baseline";
     //tag = (char*)malloc((strlen(tmp)+1) * sizeof(char));
-    
+
     I_ = I;
     N_ = N;
     T_ = (float *) malloc(I * sizeof(float));
@@ -25,7 +27,7 @@ void initialize(const int I, const int N){
     L_ = (float *) malloc(I * I * sizeof(float));
 
     // Initialize matrices
-    for (int i = 0; i < N*N; i++) {
+    for (int i = 0; i < N * N; i++) {
         sampled_[i] = false;
         mu_[i] = 0;
         sigma_[i] = 0.5;
@@ -39,15 +41,12 @@ void initialize(const int I, const int N){
 }
 
 void initialize_meshgrid_baseline(float *X_grid, int n, float min, float inc) {
-    float x = min;
     for (int i = 0; i < n; i++) {
-        float y = min;
         for (int j = 0; j < n; j++) {
-            X_grid[i * 2 * n + 2 * j] = y;
-            X_grid[i * 2 * n + 2 * j + 1] = x; // With this assignment, meshgrid is the same as python code
-            y += inc;
+            X_grid[i * 2 * n + 2 * j] = min + j * inc;
+            X_grid[i * 2 * n + 2 * j + 1] =
+                    min + i * inc; // With this assignment, meshgrid is the same as python code
         }
-        x += inc;
     }
 }
 
@@ -59,18 +58,18 @@ float function_baseline(float x, float y) {
 }
 
 void learn_baseline(float *X_grid,
-           float *K,
-           float *L_T,
-           bool *sampled,
-           int *X,
-           float *T,
-           int t,
-           int maxIter,
-           float *mu,
-           float *sigma,
-           float(*kernel)(float *, float *, float *, float *),
-           const float beta,
-           int n) {
+                    float *K,
+                    float *L_T,
+                    bool *sampled,
+                    int *X,
+                    float *T,
+                    int t,
+                    int maxIter,
+                    float *mu,
+                    float *sigma,
+                    float(*kernel)(float *, float *, float *, float *),
+                    const float beta,
+                    int n) {
 
     bool debug = true;
     int maxI = 0;
@@ -92,7 +91,8 @@ void learn_baseline(float *X_grid,
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
     T[t] = function_baseline(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression_baseline(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
+    gp_regression_baseline(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
+                           n); // updating mu and sigma for every x in X_grid
 }
 
 float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
@@ -101,13 +101,13 @@ float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
     return expf(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
 }
 
-void run(){
+void run() {
     for (int t = 0; t < I_; t++) {
         learn_baseline(X_grid_, K_, L_, sampled_, X_, T_, t, I_, mu_, sigma_, kernel2_baseline, BETA_, N_);
     }
 }
 
-void clean(){
+void clean() {
     free(T_);
     free(X_);
     free(X_grid_);
@@ -165,14 +165,14 @@ void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int siz
                 A[size * i + j] -= A[size * i + k] * A[size * j + k];
             }
             A[size * i + j] /= A[size * j + j];
-            A_T[size*j + i] = A[size * i + j];
+            A_T[size * j + i] = A[size * i + j];
         }
         // Update the diagonal entry.
         for (int k = 0; k < i; ++k) {
             A[size * i + i] -= A[size * i + k] * A[size * i + k];
         }
         A[size * i + i] = sqrtf(A[size * i + i]);
-        A_T[size*i + i] = A[size * i + i];
+        A_T[size * i + i] = A[size * i + i];
     }
 }
 
@@ -257,7 +257,7 @@ void gp_regression_baseline(float *X_grid,
         K[i * maxIter + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
                                        &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
         // K is symmetric, shouldn't go through all entries when optimizing
-        if(i==j){
+        if (i == j) {
             K[i * maxIter + j] += 0.5;
         }
     }
@@ -308,7 +308,7 @@ void gp_regression_baseline(float *X_grid,
             }
 
 
-            if(variance < 0){
+            if (variance < 0) {
                 variance = 0.0;
             }
             sigma[i * n + j] = variance;

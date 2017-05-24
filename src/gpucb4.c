@@ -41,15 +41,12 @@ void initialize(const int I, const int N) {
 }
 
 void initialize_meshgrid(float *X_grid, int n, float min, float inc) {
-    float x = min;
     for (int i = 0; i < n; i++) {
-        float y = min;
         for (int j = 0; j < n; j++) {
-            X_grid[i * 2 * n + 2 * j] = y;
-            X_grid[i * 2 * n + 2 * j + 1] = x; // With this assignment, meshgrid is the same as python code
-            y += inc;
+            X_grid[i * 2 * n + 2 * j] = min + j * inc;
+            X_grid[i * 2 * n + 2 * j + 1] =
+                    min + i * inc; // With this assignment, meshgrid is the same as python code
         }
-        x += inc;
     }
 }
 

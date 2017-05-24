@@ -45,15 +45,12 @@ void initialize(const int I, const int N) {
 }
 
 void initialize_meshgrid(float *X_grid, int n, float min, float inc) {
-    float x = min;
     for (int i = 0; i < n; i++) {
-        float y = min;
         for (int j = 0; j < n; j++) {
-            X_grid[i * 2 * n + 2 * j] = y;
-            X_grid[i * 2 * n + 2 * j + 1] = x; // With this assignment, meshgrid is the same as python code
-            y += inc;
+            X_grid[i * 2 * n + 2 * j] = min + j * inc;
+            X_grid[i * 2 * n + 2 * j + 1] =
+                    min + i * inc; // With this assignment, meshgrid is the same as python code
         }
-        x += inc;
     }
 }
 
@@ -398,39 +395,42 @@ void gp_regression(float *X_grid,
     // 4-6. For all points in grid, compute k*, mu, sigma
 
     for (i = 0; i < n; i++) { // for all points in X_grid ([i])
-        for (int j = 0; j < n; j++) { // for all points in X_grid ([i][j])
-            float x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
-            float y_star = X_grid[2 * n * i + 2 * j + 1];
-            float k_star[t_gp];
-            float f_star = 0;
-            float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
-            int x_, y_;
-            float arg1x, arg1y, sum;
+        for (int jj = 0; jj < n; jj += 8) { // for all points in X_grid ([i][j])
+            for (int j = jj; j < jj + 8; j++) {
+                float x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
+                float y_star = X_grid[2 * n * i + 2 * j + 1];
+                float k_star[t_gp];
+                float f_star = 0;
+                float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
+                int x_, y_;
+                float arg1x, arg1y, sum;
 
-            for (int k = 0; k < t_gp; k++) {
-                x_ = X[2 * k];
-                y_ = X[2 * k + 1];
-                arg1x = X_grid[x_ * 2 * n + 2 * y_];
-                arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
-                k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
+                for (int k = 0; k < t_gp; k++) {
+                    x_ = X[2 * k];
+                    y_ = X[2 * k + 1];
+                    arg1x = X_grid[x_ * 2 * n + 2 * y_];
+                    arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
+                    k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
 
-                sum = 0.;
-                for (int l = 0; l < k; ++l) {
-                    sum += K[k * maxIter + l] * v[l];
+                    sum = 0.0;
+                    for (int l = 0; l < k; ++l) {
+                        sum += K[k * maxIter + l] * v[l];
+                    }
+
+                    v[k] = (k_star[k] - sum) / K[k * maxIter + k];
+                    f_star += k_star[k] * alpha[k];
+                    variance -= v[k] * v[k];
+
+
                 }
+                mu[i * n + j] = f_star;
 
-                v[k] = (k_star[k] - sum) / K[k * maxIter + k];
-                f_star += k_star[k] * alpha[k];
-                variance -= v[k] * v[k];
-
-
+                if (variance < 0) {
+                    variance = 0.0;
+                }
+                sigma[i * n + j] = variance;
             }
-            mu[i * n + j] = f_star;
 
-            if (variance < 0) {
-                variance = 0.0;
-            }
-            sigma[i * n + j] = variance;
 
         }
     }
