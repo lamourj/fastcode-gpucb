@@ -11,7 +11,7 @@
 float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
     // RBF kernel
     float sigma = 1;
-    return (float) exp(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (float) (2 * sigma * sigma));
+    return (float) expf(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (float) (2 * sigma * sigma));
 }
 
 
@@ -26,7 +26,7 @@ void kernel2_baseline_vect(__m256 x1, __m256 y1, __m256 x2, __m256 y2, float *re
 
     y1 = _mm256_div_ps(y1, sigma);
     for (int i = 0; i < 8; ++i) {
-        result[i] = expf(y1[i]);
+        result[i] = expff(y1[i]);
     }
 }
 
@@ -54,7 +54,7 @@ void cholesky(float *A, float *result, int n, int size) {
         for (int k = 0; k < i; ++k) {
             result[size * i + i] -= result[size * i + k] * result[size * i + k];
         }
-        result[size * i + i] = sqrtf(result[size * i + i]);
+        result[size * i + i] = sqrtff(result[size * i + i]);
     }
 }
 
@@ -85,7 +85,7 @@ void incremental_cholesky(float *A, float *result, int n1, int n2, int size) {
         for (int k = 0; k < i; ++k) {
             result[size * i + i] -= result[size * i + k] * result[size * i + k];
         }
-        result[size * i + i] = sqrtf(result[size * i + i]);
+        result[size * i + i] = sqrtff(result[size * i + i]);
     }
 
 }
@@ -145,7 +145,7 @@ void incremental_cholesky_vect(float *A, float *result, int n1, int n2, int size
             acc1 += result[size * i + k] * result[size * i + k];
             k += 1;
         }
-        result[size * i + i] = sqrtf(
+        result[size * i + i] = sqrtff(
                 A[size * i + i] - acc[0] - acc[1] - acc[2] - acc[3] - acc[4] - acc[5] - acc[6] - acc[7] - acc1);
     }
 }
@@ -509,7 +509,7 @@ int main() {
 */
 /*
 
-    // Run the timing experiment for different grid sizes:
+    // Run the timing expferiment for different grid sizes:
     for (int i = 8; i < gridsize; i+=8) {
 
         for (int j = 0; j < n; ++j) {
