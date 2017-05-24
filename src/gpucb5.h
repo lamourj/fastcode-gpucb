@@ -1,15 +1,14 @@
-// Optimized cholesky solved but no vectorization
+// Inline the cholesky solve
 
-#ifndef FASTCODE_GPUCB_GPUCB4_H
-#define FASTCODE_GPUCB_GPUCB4_H
-
+#ifndef FASTCODE_GPUCB_GPUCB5_H
+#define FASTCODE_GPUCB_GPUCB5_H
 
 #include <stdbool.h>
 
 double GRID_MIN_;
 double GRID_INC_;
 double BETA_;
-extern const char *tag[20];
+extern const char *tag[10];
 // Allocate memory
 double *T_;
 int *X_;
@@ -76,4 +75,4 @@ void gp_regression(double *X_grid,
                    int n);
 
 
-#endif //FASTCODE_GPUCB_GPUCB4_H
+#endif //FASTCODE_GPUCB_GPUCB5_H

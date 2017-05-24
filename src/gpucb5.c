@@ -1,16 +1,20 @@
-// Optimized cholesky solved but no vectorization
+// Inline the cholesky solve
 
 
-#include "gpucb4.h"
+#include "gpucb5.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 
-const char *tag[20] = {"solve2_opt"};
+const char *tag[10] = {"inlined"};
 
 void initialize(const int I, const int N) {
+    if(N % 8 !=0){
+        printf("n is not divisible by 8 !!! \n");
+    }
+
     BETA_ = 100;
     GRID_MIN_ = -6;
     GRID_INC_ = 0.025;
@@ -401,40 +405,35 @@ void gp_regression(double *X_grid,
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
-    for (i = 0; i < n; i++) // for all points in X_grid ([i])
-    {
-        for (int j = 0; j < n; j++) // for all points in X_grid ([i][j])
-        {
+    for (i = 0; i < n; i++) { // for all points in X_grid ([i])
+        for (int j = 0; j < n; j++) { // for all points in X_grid ([i][j])
             double x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
             double y_star = X_grid[2 * n * i + 2 * j + 1];
             double k_star[t_gp];
-
-            for (int k = 0; k < t_gp; k++) {
-                int x_ = X[2 * k];
-                int y_ = X[2 * k + 1];
-                double arg1x = X_grid[x_ * 2 * n + 2 * y_];
-                double arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
-                k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
-            }
-
             double f_star = 0;
-            for (int k = 0; k < t_gp; k++) {
-                //f_star += k_star[k] * alpha->data[k];
-                f_star += k_star[k] * alpha[k];
-            }
-
-            mu[i * n + j] = f_star;
-            //printf("fstar is: %lf", f_star);
-            //printf("write in mu at %d \n", i*n+j);
-            cholesky_solve2(t_gp, maxIter, K, k_star, v, 1);
-            //printf("loop solve done\n");
-
             double variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
-            for (int k = 0; k < t_gp; k++) {
-                //variance -= v->data[k] * v->data[k];
-                variance -= v[k] * v[k];
-            }
+            int x_, y_;
+            double arg1x, arg1y, sum;
 
+            for (int k = 0; k < t_gp; k++) {
+                x_ = X[2 * k];
+                y_ = X[2 * k + 1];
+                arg1x = X_grid[x_ * 2 * n + 2 * y_];
+                arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
+                k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
+
+                sum = 0.;
+                for (int l = 0; l < k; ++l) {
+                    sum += K[k * maxIter + l] * v[l];
+                }
+
+                v[k] = (k_star[k] - sum) / K[k * maxIter + k];
+                f_star += k_star[k] * alpha[k];
+                variance -= v[k] * v[k];
+
+
+            }
+            mu[i * n + j] = f_star;
 
             if (variance < 0) {
                 variance = 0.0;

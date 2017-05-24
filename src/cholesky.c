@@ -182,7 +182,6 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) 
 }
 
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower) {
-    // TODO: Unroll over i ? Blocking (LU and x accessed several times)
 
     if (lower == 1) {
         float sum0 = 0.;
@@ -192,10 +191,6 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
             float sum3 = 0.;
 
             for (int k = 0; k + 3 < i; k += 4) {
-                /*printf("k: %d\n", k);
-                printf("k: %d\n", k+1);
-                printf("k: %d\n", k+2);
-                printf("k: %d\n", k+3);*/
                 const int isizek = i * size + k;
                 const float lu0 = LU[isizek];
                 const float xk0 = x[k];
@@ -228,7 +223,6 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
 
             float sumRest = 0;
             for (int k = 4 * (i / 4); k < i; k++) {
-                // printf("k: %d\n", k);
                 const float lu0 = LU[i * size + k];
                 const float xk0 = x[k];
                 const float term0 = lu0 * xk0;
@@ -282,7 +276,6 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
 
 
             for (int k = 4 * ((i + 1) / 4); k < d; k++) {
-                printf("k: %d\n", k);
                 const float lu0 = LU[i * size + k];
                 const float xk0 = x[k];
                 const float term0 = lu0 * xk0;
