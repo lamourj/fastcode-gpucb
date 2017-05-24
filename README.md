@@ -7,6 +7,7 @@ Baseline now has incremental Cholesky.
 1. ~~Incremental Cholesky, now baseline~~
 2. ~~First optimization without vectorization, had incoherences: deleted~~
 3. Vectorized search of the maximum value to sample.
+4. Cholesky solver optimized without vect
 
 ## 1:1 Meeting May 9th ##
 - ~~Fix kernel (to RBF) -- done~~

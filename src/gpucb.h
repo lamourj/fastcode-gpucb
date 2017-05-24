@@ -2,6 +2,7 @@
 
 #ifndef FASTCODE_GPUCB_GPUCB_H
 #define FASTCODE_GPUCB_GPUCB_H
+
 #include <stdbool.h>
 
 double GRID_MIN_;
@@ -42,7 +43,9 @@ double kernel2_baseline(double *x1, double *y1, double *x2, double *y2);
 void initialize_meshgrid_baseline(double *X_grid, int n, double min, double inc);
 
 void initialize(const int, const int);
+
 void run();
+
 void clean();
 
 int gpucb_baseline(int maxIter, int n, double grid_min, double grid_inc);

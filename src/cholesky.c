@@ -182,7 +182,6 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) 
 }
 
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower) {
-    // TODO: Test
     // TODO: Unroll over i ? Blocking (LU and x accessed several times)
 
     if (lower == 1) {
@@ -295,7 +294,6 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
             x[i] = xi;
         }
     }
-
 }
 
 
