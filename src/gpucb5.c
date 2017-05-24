@@ -405,7 +405,32 @@ void gp_regression(float *X_grid,
                 int x_, y_;
                 float arg1x, arg1y, sum;
 
-                for (int k = 0; k < t_gp; k++) {
+                for (int kk = 0; kk + 7 < t_gp; kk += 8) {
+                    for (int k = kk; k < kk + 8; k++) {
+                        x_ = X[2 * k];
+                        y_ = X[2 * k + 1];
+                        arg1x = X_grid[x_ * 2 * n + 2 * y_];
+                        arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
+                        k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
+
+                        sum = 0.0;
+                        for (int ll = 0; ll + 7 < k; ll += 8) {
+                            for (int l = ll; l < ll + 8; ++l) {
+                                // This loop should be vectorized: Nice 8x8 block (MMM)
+                                sum += K[k * maxIter + l] * v[l];
+                            }
+                        }
+                        for (int l = 8 * (k / 8); l < k; ++l) {
+                            // triangle
+                            sum += K[k * maxIter + l] * v[l];
+                        }
+
+                        v[k] = (k_star[k] - sum) / K[k * maxIter + k];
+                        f_star += k_star[k] * alpha[k];
+                        variance -= v[k] * v[k];
+                    }
+                }
+                for (int k = 8 * (t_gp / 8); k < t_gp; k++) {
                     x_ = X[2 * k];
                     y_ = X[2 * k + 1];
                     arg1x = X_grid[x_ * 2 * n + 2 * y_];
@@ -413,16 +438,23 @@ void gp_regression(float *X_grid,
                     k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
 
                     sum = 0.0;
-                    for (int l = 0; l < k; ++l) {
+                    for (int ll = 0; ll + 7 < k; ll += 8) {
+                        for (int l = ll; l < ll + 8; ++l) {
+                            // l nice, k not nice
+                            sum += K[k * maxIter + l] * v[l];
+                        }
+                    }
+                    for (int l = 8 * (k / 8); l < k; ++l) {
+                        // Triangle
                         sum += K[k * maxIter + l] * v[l];
                     }
 
                     v[k] = (k_star[k] - sum) / K[k * maxIter + k];
                     f_star += k_star[k] * alpha[k];
                     variance -= v[k] * v[k];
-
-
                 }
+
+
                 mu[i * n + j] = f_star;
 
                 if (variance < 0) {
