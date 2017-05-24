@@ -25,7 +25,7 @@ void kernel2_baseline_vect(__m256 x1, __m256 y1, __m256 x2, __m256 y2, float *re
     y1 = _mm256_sub_ps(_mm256_set1_ps(0.0), y1);
 
     y1 = _mm256_div_ps(y1, sigma);
-    for (int i=0; i<8; ++i) {
+    for (int i = 0; i < 8; ++i) {
         result[i] = expf(y1[i]);
     }
 }
@@ -37,12 +37,12 @@ void kernel2_baseline_vect(__m256 x1, __m256 y1, __m256 x2, __m256 y2, float *re
     n:    The size of the data in matrix A to decompose
     size: The actual size of the rows
  */
-void cholesky(float *A, float  *result, int n, int size) {
+void cholesky(float *A, float *result, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
         // Update the off diagonal entries first.
         for (int j = 0; j < i; ++j) {
-            result[size*i+j] = A[size*i+j];
+            result[size * i + j] = A[size * i + j];
             for (int k = 0; k < j; ++k) {
                 result[size * i + j] -= result[size * i + k] * result[size * j + k];
             }
@@ -50,7 +50,7 @@ void cholesky(float *A, float  *result, int n, int size) {
         }
 
         // Update the diagonal entry of this row.
-        result[size*i+i] = A[size*i+i];
+        result[size * i + i] = A[size * i + i];
         for (int k = 0; k < i; ++k) {
             result[size * i + i] -= result[size * i + k] * result[size * i + k];
         }
@@ -74,14 +74,14 @@ void incremental_cholesky(float *A, float *result, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
-            result[size*i+j] = A[size*i+j];
+            result[size * i + j] = A[size * i + j];
             for (int k = 0; k < j; ++k) {
                 result[size * i + j] -= result[size * i + k] * result[size * j + k];
             }
             result[size * i + j] /= result[size * j + j];
         }
         // Update the diagonal entry.
-        result[size*i+i] = A[size*i+i];
+        result[size * i + i] = A[size * i + i];
         for (int k = 0; k < i; ++k) {
             result[size * i + i] -= result[size * i + k] * result[size * i + k];
         }
@@ -125,7 +125,9 @@ void incremental_cholesky_vect(float *A, float *result, int n1, int n2, int size
                 acc1 += result[size * i + k] * result[size * j + k];
             }
 
-            result[size * i + j] = (A[size * i + j] - acc1 - acc[0] - acc[1] - acc[2] - acc[3] - acc[4] - acc[5] - acc[ 6] - acc[7])/result[size * j + j];
+            result[size * i + j] =
+                    (A[size * i + j] - acc1 - acc[0] - acc[1] - acc[2] - acc[3] - acc[4] - acc[5] - acc[6] - acc[7]) /
+                    result[size * j + j];
         }
 
         // Update the diagonal entry.
@@ -134,16 +136,17 @@ void incremental_cholesky_vect(float *A, float *result, int n1, int n2, int size
         int k;
         acc = _mm256_setzero_ps();
         acc1 = 0.0;
-        for (k = 0; k + 7 < i; k+=8) {
+        for (k = 0; k + 7 < i; k += 8) {
             v1 = _mm256_loadu_ps(&result[size * i + k]);
             acc = _mm256_fmadd_ps(v1, v1, acc);
             //result[size * i + i] -= result[size * i + k] * result[size * i + k];
         }
         while (k < i) {
             acc1 += result[size * i + k] * result[size * i + k];
-            k+=1;
+            k += 1;
         }
-        result[size * i + i] = sqrtf(A[size * i + i] - acc[0] - acc[1] - acc[2] - acc[3] - acc[4] - acc[5] - acc[ 6] - acc[7] - acc1);
+        result[size * i + i] = sqrtf(
+                A[size * i + i] - acc[0] - acc[1] - acc[2] - acc[3] - acc[4] - acc[5] - acc[6] - acc[7] - acc1);
     }
 }
 
@@ -177,6 +180,7 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) 
         }
     }
 }
+
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower) {
     // TODO: Test
     // TODO: Unroll over i ? Blocking (LU and x accessed several times)
@@ -188,7 +192,11 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
             float sum2 = 0.;
             float sum3 = 0.;
 
-            for (int k = 0; k < i; k += 4) {
+            for (int k = 0; k + 3 < i; k += 4) {
+                /*printf("k: %d\n", k);
+                printf("k: %d\n", k+1);
+                printf("k: %d\n", k+2);
+                printf("k: %d\n", k+3);*/
                 const int isizek = i * size + k;
                 const float lu0 = LU[isizek];
                 const float xk0 = x[k];
@@ -221,6 +229,7 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
 
             float sumRest = 0;
             for (int k = 4 * (i / 4); k < i; k++) {
+                // printf("k: %d\n", k);
                 const float lu0 = LU[i * size + k];
                 const float xk0 = x[k];
                 const float term0 = lu0 * xk0;
@@ -239,7 +248,7 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
             float sum2 = 0.;
             float sum3 = 0.;
 
-            for (int k = i + 1; k < d; ++k) {
+            for (int k = i + 1; k + 3 < d; ++k) {
                 const int isizek = i * size + k;
 
                 const float lu0 = LU[isizek];
@@ -274,6 +283,7 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
 
 
             for (int k = 4 * ((i + 1) / 4); k < d; k++) {
+                printf("k: %d\n", k);
                 const float lu0 = LU[i * size + k];
                 const float xk0 = x[k];
                 const float term0 = lu0 * xk0;
@@ -308,7 +318,7 @@ void cholesky_solve2_vect(int d, int size, float *LU, float *b0, float *x, int l
             vsum3 = _mm256_setzero_ps();
             vsum4 = _mm256_setzero_ps();
             int k;
-            for (k = 0; k < i; k+=1) {
+            for (k = 0; k < i; k += 1) {
                 v1 = _mm256_set1_ps(LU[i * size + k]);
 //                v2 = _mm256_set1_ps(LU[i * size + k + 1]);
 //                v3 = _mm256_set1_ps(LU[i * size + k + 2]);
@@ -334,7 +344,7 @@ void cholesky_solve2_vect(int d, int size, float *LU, float *b0, float *x, int l
             __m256 b = _mm256_loadu_ps(&b0[8 * i]);
             vsum1 = _mm256_sub_ps(b, vsum1);
             __m256 divisor = _mm256_set1_ps(LU[i * size + i]);
-            _mm256_storeu_ps(&x[8 *i], _mm256_div_ps(vsum1, divisor));
+            _mm256_storeu_ps(&x[8 * i], _mm256_div_ps(vsum1, divisor));
 //            x[i * 8    ] = (b0[i] - vsum1[0]) / LU[i * size + i];
 //            x[i * 8 + 1] = (b1[i] - vsum1[1]) / LU[i * size + i];
 //            x[i * 8 + 2] = (b2[i] - vsum1[2]) / LU[i * size + i];
@@ -379,11 +389,11 @@ float *x_smal;
 void initialize(const int I, const int N) {
     d = I;
     size = I;
-    LU     = malloc(sizeof(float) * I * I);
+    LU = malloc(sizeof(float) * I * I);
     result = malloc(sizeof(float) * I * I);
-    b      = malloc(sizeof(float) * 8 * I);
+    b = malloc(sizeof(float) * 8 * I);
     b_smal = malloc(sizeof(float) * I);
-    x      = malloc(sizeof(float) * 8 * I);
+    x = malloc(sizeof(float) * 8 * I);
     x_smal = malloc(sizeof(float) * I);
 
     int n = I;
@@ -405,12 +415,12 @@ void initialize(const int I, const int N) {
     }
 
     // Make the righthand side
-    for (float i=0; i<n*8; ++i) {
+    for (float i = 0; i < n * 8; ++i) {
         int j = (int) i;
         b[j] = sin(i);
     }
 
-    for (float i=0; i<n; ++i) {
+    for (float i = 0; i < n; ++i) {
         int j = (int) i;
         b_smal[j] = sin(i);
     }
@@ -424,7 +434,7 @@ void run() {
     cholesky_solve2_opt(d, size, LU, b_smal, x_smal, 1);
 }
 
-void clean(){
+void clean() {
     free(LU);
     free(result);
     free(b);
@@ -432,8 +442,6 @@ void clean(){
     free(x);
     free(x_smal);
 }
-
-
 
 
 int main() {
@@ -482,7 +490,7 @@ int main() {
 
     // Initialize the sampled points:
     float b[n];
-    for (float i=0; i<n; ++i) {
+    for (float i = 0; i < n; ++i) {
         int j = (int) i;
         b[j] = sin(i);
     }
@@ -495,7 +503,7 @@ int main() {
 
     cholesky_solve2(n, n, PSD, b, v, 1);
     printf("The vectorized version\n");
-    for (int i=0; i<8; ++i) {
+    for (int i = 0; i < 8; ++i) {
         printf("%f ", v[i]);
     }
 
@@ -503,7 +511,7 @@ int main() {
     cholesky_solve2_opt(n, n, PSD, b, v, 1);
 
     printf("The vectorized version\n");
-    for (int i=0; i<8; ++i) {
+    for (int i = 0; i < 8; ++i) {
         printf("%f ", v[i]);
     }
 }
