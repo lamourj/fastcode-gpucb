@@ -26,7 +26,7 @@ Use AVX2
 
 ## 1:1 Meeting Max 24th: TODOS
 - Matrix for L
-- Full floats
+- ~~Full floats~~
 - Blocking: Find right blocking factor (3x3, 4x4)
 - Reduce to MMM
 - Fuse vector computation and max finding

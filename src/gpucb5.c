@@ -74,7 +74,7 @@ void learn(float *X_grid,
            float(*kernel)(float *, float *, float *, float *),
            const float beta,
            int n) {
-    bool debug = true;
+
     int maxI = 0;
     int maxJ = 0;
     float max = mu[0] + sqrtf(beta) * sigma[0];
@@ -94,8 +94,8 @@ void learn(float *X_grid,
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
     T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
-                  n); // updating mu and sigma for every x in X_grid
+    gp_regression_opt(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
+                      n); // updating mu and sigma for every x in X_grid
 }
 
 float kernel2(float *x1, float *y1, float *x2, float *y2) {
@@ -193,7 +193,7 @@ void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size) {
 void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) {
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
-            float sum = 0.;
+            float sum = 0;
             for (int k = 0; k < i; ++k) {
                 sum += LU[i * size + k] * x[k];
             }
@@ -201,7 +201,7 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) 
         }
     } else {
         for (int i = d - 1; i >= 0; --i) {
-            float sum = 0.;
+            float sum = 0;
             for (int k = i + 1; k < d; ++k) {
                 sum += LU[i * size + k] * x[k];
             }
@@ -214,11 +214,11 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
     // TODO: Unroll over i ? Blocking (LU and x accessed several times)
 
     if (lower == 1) {
-        float sum0 = 0.;
+        float sum0 = 0;
         for (int i = 0; i < d; ++i) {
-            float sum1 = 0.;
-            float sum2 = 0.;
-            float sum3 = 0.;
+            float sum1 = 0;
+            float sum2 = 0;
+            float sum3 = 0;
 
             for (int k = 0; k + 3 < i; k += 4) {
                 /*printf("k: %d\n", k);
@@ -271,10 +271,10 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
         }
     } else {
         for (int i = d - 1; i >= 0; --i) {
-            float sum0 = 0.;
-            float sum1 = 0.;
-            float sum2 = 0.;
-            float sum3 = 0.;
+            float sum0 = 0;
+            float sum1 = 0;
+            float sum2 = 0;
+            float sum3 = 0;
 
             for (int k = i + 1; k + 3 < d; ++k) {
                 const int isizek = i * size + k;
@@ -329,12 +329,12 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
 void cholesky_solve(int d, float *LU, float *b, float *x) {
     float y[d];
     for (int i = 0; i < d; ++i) {
-        float sum = 0.;
+        float sum = 0;
         for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
         y[i] = (b[i] - sum) / LU[i * d + i];
     }
     for (int i = d - 1; i >= 0; --i) {
-        float sum = 0.;
+        float sum = 0;
         for (int k = i + 1; k < d; ++k)sum += LU[k * d + i] * x[k];
         x[i] = (y[i] - sum) / LU[i * d + i];
     }
@@ -396,6 +396,7 @@ void gp_regression(float *X_grid,
 
     for (i = 0; i < n; i++) { // for all points in X_grid ([i])
         for (int jj = 0; jj < n; jj += 8) { // for all points in X_grid ([i][j])
+            // i, jj, kk, ll, j, k, l
             for (int j = jj; j < jj + 8; j++) {
                 float x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
                 float y_star = X_grid[2 * n * i + 2 * j + 1];
@@ -462,8 +463,136 @@ void gp_regression(float *X_grid,
                 }
                 sigma[i * n + j] = variance;
             }
+        }
+    }
+}
 
 
+void gp_regression_opt(float *X_grid,
+                       float *K,
+                       float *L_T,
+                       int *X,
+                       float *T,
+                       int t,
+                       int maxIter,
+                       float   (*kernel)(float *, float *, float *, float *),
+                       float *mu,
+                       float *sigma,
+                       int n) {
+    int t_gp = t + 1;
+
+    // extend the K matrix
+    int i = t_gp - 1;
+    for (int j = 0; j < t_gp; j++) {
+        int x1 = X[2 * i];
+        int y1 = X[2 * i + 1];
+        int x2 = X[2 * j];
+        int y2 = X[2 * j + 1];
+
+        K[i * maxIter + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
+                                       &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
+        // K is symmetric, shouldn't go through all entries when optimizing
+        if (i == j) {
+            K[i * maxIter + j] += 0.5;
+        }
+    }
+
+
+    // 2. Cholesky
+    incremental_cholesky(K, L_T, t_gp - 1, t_gp, maxIter);
+
+    // 3. Compute alpha
+    float x[t_gp];
+    float alpha[t_gp];
+    float v[t_gp];
+
+
+    cholesky_solve2(t_gp, maxIter, K, T, x, 1);
+    cholesky_solve2(t_gp, maxIter, L_T, x, alpha, 0);
+
+    // 4-6. For all points in grid, compute k*, mu, sigma
+
+    for (i = 0; i < n; i++) { // for all points in X_grid ([i])
+        for (int jj = 0; jj < n; jj += 8) { // for all points in X_grid ([i][j])
+            for (int j = jj; j < jj + 8; j++) {
+                mu[i * n + j] = 0;
+                float x_star = X_grid[2 * n * i + 2 * j];
+                float y_star = X_grid[2 * n * i + 2 * j + 1];
+                sigma[i * n + j] = (*kernel)(&x_star, &y_star, &x_star, &y_star);
+            }
+            float sums[8 * 8];
+            for (int kk = 0; kk + 7 < t_gp; kk += 8) {
+                for (int z = 0; z < 8 * 8; z++) {
+                    sums[z] = 0;
+                }
+                for (int ll = 0; ll <= kk; ll += 8) {
+                    for (int j = jj; j < jj + 8; j++) {
+                        float x_star = X_grid[2 * n * i + 2 * j];
+                        float y_star = X_grid[2 * n * i + 2 * j + 1];
+                        float k_star[t_gp];
+                        int x_, y_;
+                        float arg1x, arg1y;
+
+                        for (int k = kk; k < kk + 8; k++) {
+                            x_ = X[2 * k];
+                            y_ = X[2 * k + 1];
+                            arg1x = X_grid[x_ * 2 * n + 2 * y_];
+                            arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
+                            k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
+                            if (ll == kk) {
+                                for (int l = ll; l < k; ++l) {
+                                    sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
+                                }
+                                v[k] = (k_star[k] - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+                                mu[i * n + j] += k_star[k] * alpha[k];
+                                sigma[i * n + j] -= v[k] * v[k];
+                            } else {
+                                for (int l = ll; l < ll + 8; ++l) {
+                                    sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for (int z = 0; z < 8 * 8; z++) {
+                sums[z] = 0;
+            }
+            for (int k = 8 * (t_gp / 8); k < t_gp; k++) {
+                for (int ll = 0; ll + 7 < k; ll += 8) {
+                    for (int j = jj; j < jj + 8; j++) {
+                        for (int l = ll; l < ll + 8; ++l) {
+                            sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
+                        }
+                    }
+                }
+                for (int l = 8 * (k / 8); l < k; ++l) {
+                    for (int j = jj; j < jj + 8; j++) {
+                        sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
+                    }
+                }
+
+                int x_, y_;
+                float arg1x, arg1y;
+                x_ = X[2 * k];
+                y_ = X[2 * k + 1];
+                arg1x = X_grid[x_ * 2 * n + 2 * y_];
+                arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
+                for (int j = jj; j < jj + 8; j++) {
+                    float x_star = X_grid[2 * n * i + 2 * j];
+                    float y_star = X_grid[2 * n * i + 2 * j + 1];
+                    float kstar = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
+                    v[k] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+
+                    mu[i * n + j] += kstar * alpha[k];
+                    sigma[i * n + j] -= v[k] * v[k];
+                }
+            }
+            for (int j = jj; j < jj + 8; j++) {
+                if (sigma[i * n + j] < 0) {
+                    sigma[i * n + j] = 0.0;
+                }
+            }
         }
     }
 }

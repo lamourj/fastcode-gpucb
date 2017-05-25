@@ -74,5 +74,17 @@ void gp_regression(float *X_grid,
                    float *sigma,
                    int n);
 
+void gp_regression_opt(float *X_grid,
+                   float *K,
+                   float *L_T,
+                   int *X,
+                   float *T,
+                   int t,
+                   int maxIter,
+                   float   (*kernel)(float *, float *, float *, float *),
+                   float *mu,
+                   float *sigma,
+                   int n);
+
 
 #endif //FASTCODE_GPUCB_GPUCB5_H
