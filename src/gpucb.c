@@ -296,7 +296,6 @@ void gp_regression_baseline(float *X_grid,
 
             float f_star = 0;
             for (int k = 0; k < t_gp; k++) {
-                //f_star += k_star[k] * alpha->data[k];
                 f_star += k_star[k] * alpha[k];
             }
 

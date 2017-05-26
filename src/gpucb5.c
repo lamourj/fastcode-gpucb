@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <immintrin.h>
 
 const char *tag[10] = {"inlined"};
 
@@ -533,6 +534,55 @@ void mmm(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
     }
 }
 
+void mmm_vect(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
+    const int ll8_0 = ll * 8;
+    const int ll8_1 = ll8_0 + 8;
+    const int ll8_2 = ll8_0 + 16;
+    const int ll8_3 = ll8_0 + 24;
+    const int ll8_4 = ll8_0 + 32;
+    const int ll8_5 = ll8_0 + 40;
+    const int ll8_6 = ll8_0 + 48;
+    const int ll8_7 = ll8_0 + 56;
+    const int jj8 = jj + 8;
+    const int kk8 = kk + 8;
+
+
+    for (int j = jj; j < jj8; j++) {
+        const int j_mod_8 = j % 8;
+
+        for (int k = kk; k < kk8; k++) {
+            float tmp_sum = 0;
+            const int kmaxIterll = k * maxIter + ll;
+            const float v0 = v[ll8_0 + j_mod_8];
+            const float v1 = v[ll8_1 + j_mod_8];
+            const float v2 = v[ll8_2 + j_mod_8];
+            const float v3 = v[ll8_3 + j_mod_8];
+            const float v4 = v[ll8_4 + j_mod_8];
+            const float v5 = v[ll8_5 + j_mod_8];
+            const float v6 = v[ll8_6 + j_mod_8];
+            const float v7 = v[ll8_7 + j_mod_8];
+
+
+            __m256 k_vector = _mm256_loadu_ps(K + k * maxIter + ll);
+            __m256 v_vector = _mm256_setr_ps(v0, v1, v2, v3, v4, v5, v6, v7);
+
+            __m256 k_v = _mm256_mul_ps(k_vector, v_vector);
+
+
+            __m128 hi = _mm256_extractf128_ps(k_v, 1);
+            __m128 lo = _mm256_extractf128_ps(k_v, 0);
+            lo = _mm_add_ps(hi, lo);
+            hi = _mm_movehl_ps(hi, lo);
+            lo = _mm_add_ps(hi, lo);
+            hi = _mm_shuffle_ps(lo, lo, 1);
+            lo = _mm_add_ss(hi, lo);
+            tmp_sum = _mm_cvtss_f32(lo);
+
+            sums[(k % 8) * 8 + j_mod_8] += tmp_sum;
+        }
+    }
+}
+
 void gp_regression_opt(float *X_grid,
                        float *K,
                        float *L_T,
@@ -598,7 +648,7 @@ void gp_regression_opt(float *X_grid,
                     if (ll == kk) {
                         solve_triangle(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, sums, K, v);
                     } else {
-                        mmm(jj, kk, ll, maxIter, sums, K, v);
+                        mmm_vect(jj, kk, ll, maxIter, sums, K, v);
                     }
                 }
             }
