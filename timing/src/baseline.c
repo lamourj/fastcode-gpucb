@@ -35,10 +35,10 @@ void initialize_bl(const int I, const int N) {
         printf("ERROR: Out of memory\n");
     }
 
-    initialize_meshgrid_baseline(X_grid_bl, N_bl, GRID_MIN_bl, GRID_INC_bl);
+    initialize_meshgrid_bl(X_grid_bl, N_bl, GRID_MIN_bl, GRID_INC_bl);
 }
 
-void initialize_meshgrid_baseline(float *X_grid, int n, float min, float inc) {
+void initialize_meshgrid_bl(float *X_grid, int n, float min, float inc) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             X_grid[i * 2 * n + 2 * j] = min + j * inc;
@@ -48,14 +48,14 @@ void initialize_meshgrid_baseline(float *X_grid, int n, float min, float inc) {
     }
 }
 
-float function_baseline(float x, float y) {
+float function_bl(float x, float y) {
     // float t = sin(x) + cos(y);
     float t = -powf(x, 2) - powf(y, 2);
     //printf("(baseline) Sampled: [%.2f %.2f] result %f \n", x, y, t);
     return t;
 }
 
-void learn_baseline(float *X_grid,
+void learn_bl(float *X_grid,
                     float *K,
                     float *L_T,
                     bool *sampled,
@@ -88,12 +88,12 @@ void learn_baseline(float *X_grid,
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
-    T[t] = function_baseline(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression_baseline(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
+    T[t] = function_bl(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
+    gp_regression_bl(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
                            n); // updating mu and sigma for every x in X_grid
 }
 
-float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
+float kernel2_bl(float *x1, float *y1, float *x2, float *y2) {
     // RBF kernel
     float sigma = 1;
     return expf(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
@@ -101,7 +101,7 @@ float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
 
 void run_bl() {
     for (int t = 0; t < I_bl; t++) {
-        learn_baseline(X_grid_bl, K_bl, L_bl, sampled_bl, X_bl, T_bl, t, I_bl, mu_bl, sigma_bl, kernel2_baseline, BETA_bl, N_bl);
+        learn_bl(X_grid_bl, K_bl, L_bl, sampled_bl, X_bl, T_bl, t, I_bl, mu_bl, sigma_bl, kernel2_bl, BETA_bl, N_bl);
     }
 }
 
@@ -125,7 +125,7 @@ void clean_bl() {
     n:    The size of the data in matrix A to decompose
     size: The actual size of the rows
  */
-void cholesky_baseline(float *A, int n, int size) {
+void cholesky_bl(float *A, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
         // Update the off diagonal entries first.
@@ -155,7 +155,7 @@ void cholesky_baseline(float *A, int n, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int size) {
+void incremental_cholesky_bl(float *A, float *A_T, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
@@ -185,7 +185,7 @@ void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int siz
  *      x: vector to put result in
  *      lower: if one the lower triangle system is solved, else the upper triangle system is solved.
 */
-void cholesky_solve2_baseline(int d, int size, float *LU, float *b, float *x, int lower) {
+void cholesky_solve2_bl(int d, int size, float *LU, float *b, float *x, int lower) {
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
             float sum = 0.;
@@ -207,7 +207,7 @@ void cholesky_solve2_baseline(int d, int size, float *LU, float *b, float *x, in
 }
 
 // Old version.
-void cholesky_solve_baseline(int d, float *LU, float *b, float *x) {
+void cholesky_solve_bl(int d, float *LU, float *b, float *x) {
     float y[d];
     for (int i = 0; i < d; ++i) {
         float sum = 0.;
@@ -222,7 +222,7 @@ void cholesky_solve_baseline(int d, float *LU, float *b, float *x) {
 }
 
 
-void transpose_baseline(float *M, float *M_T, int d, int size) {
+void transpose_bl(float *M, float *M_T, int d, int size) {
     for (int i = 0; i < d; ++i) {
         for (int j = 0; j < d; ++j) {
             M_T[j * size + i] = M[i * size + j];
@@ -231,7 +231,7 @@ void transpose_baseline(float *M, float *M_T, int d, int size) {
 }
 
 
-void gp_regression_baseline(float *X_grid,
+void gp_regression_bl(float *X_grid,
                             float *K,
                             float *L_T,
                             int *X,
@@ -262,7 +262,7 @@ void gp_regression_baseline(float *X_grid,
 
 
     // 2. Cholesky
-    incremental_cholesky_baseline(K, L_T, t_gp - 1, t_gp, maxIter);
+    incremental_cholesky_bl(K, L_T, t_gp - 1, t_gp, maxIter);
 
     // 3. Compute alpha
     float x[t_gp];
@@ -270,8 +270,8 @@ void gp_regression_baseline(float *X_grid,
     float v[t_gp];
 
 
-    cholesky_solve2_baseline(t_gp, maxIter, K, T, x, 1);
-    cholesky_solve2_baseline(t_gp, maxIter, L_T, x, alpha, 0);
+    cholesky_solve2_bl(t_gp, maxIter, K, T, x, 1);
+    cholesky_solve2_bl(t_gp, maxIter, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
@@ -298,7 +298,7 @@ void gp_regression_baseline(float *X_grid,
             }
 
             mu[i * n + j] = f_star;
-            cholesky_solve2_baseline(t_gp, maxIter, K, k_star, v, 1);
+            cholesky_solve2_bl(t_gp, maxIter, K, k_star, v, 1);
 
             float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
             for (int k = 0; k < t_gp; k++) {

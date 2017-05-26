@@ -22,9 +22,9 @@ float *L_bl;
 int I_bl;
 int N_bl;
 
-float function_baseline(float x, float y);
+float function_bl(float x, float y);
 
-void learn_baseline(float *X_grid,
+void learn_bl(float *X_grid,
                     float *K,
                     float *L_T,
                     bool *sampled,
@@ -38,9 +38,9 @@ void learn_baseline(float *X_grid,
                     const float beta,
                     int n);
 
-float kernel2_baseline(float *x1, float *y1, float *x2, float *y2);
+float kernel2_bl(float *x1, float *y1, float *x2, float *y2);
 
-void initialize_meshgrid_baseline(float *X_grid, int n, float min, float inc);
+void initialize_meshgrid_bl(float *X_grid, int n, float min, float inc);
 
 void initialize_bl(const int, const int);
 
@@ -48,19 +48,19 @@ void run_bl();
 
 void clean_bl();
 
-int gpucb_baseline(int maxIter, int n, float grid_min, float grid_inc);
+int gpucb_bl(int maxIter, int n, float grid_min, float grid_inc);
 
-void cholesky_baseline(float *A, int n, int size);
+void cholesky_bl(float *A, int n, int size);
 
-void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int size);
+void incremental_cholesky_bl(float *A, float *A_T, int n1, int n2, int size);
 
-void cholesky_solve2_baseline(int d, int size, float *LU, float *b, float *x, int lower);
+void cholesky_solve2_bl(int d, int size, float *LU, float *b, float *x, int lower);
 
-void cholesky_solve_baseline(int d, float *LU, float *b, float *x);
+void cholesky_solve_bl(int d, float *LU, float *b, float *x);
 
-void transpose_baseline(float *M, float *M_T, int d, int size);
+void transpose_bl(float *M, float *M_T, int d, int size);
 
-void gp_regression_baseline(float *X_grid,
+void gp_regression_bl(float *X_grid,
                             float *K,
                             float *L_T,
                             int *X,
