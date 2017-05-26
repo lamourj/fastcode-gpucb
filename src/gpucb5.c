@@ -452,6 +452,53 @@ void gp_regression(float *X_grid,
 }
 
 
+void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
+                    int maxIter, float *sums, float *K, float *v) {
+    for (int j = jj; j < jj + 8; j++) {
+        float muinj = mu[i * n + j];
+        float sigmainj = sigma[i * n + j];
+        float x_star = X_grid[2 * n * i + 2 * j];
+        float y_star = X_grid[2 * n * i + 2 * j + 1];
+        int x_, y_;
+        float arg1x, arg1y;
+
+        for (int k = kk; k < kk + 8; k++) {
+            x_ = X[2 * k];
+            y_ = X[2 * k + 1];
+            arg1x = X_grid[x_ * 2 * n + 2 * y_];
+            arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
+            float kstar = expf(
+                    -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
+            for (int l = ll; l < k; ++l) {
+                sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
+            }
+            v[k * 8 + (j % 8)] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+            muinj += kstar * alpha[k];
+            sigmainj -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
+
+        }
+        mu[i * n + j] = muinj;
+        sigma[i * n + j] = sigmainj;
+    }
+}
+
+void mmm(float *mu, float *sigma, int i, int jj, int kk, int ll, int n,
+         int maxIter, int k_max, float *sums, float *K, float *v) {
+
+    for (int j = jj; j < jj + 8; j++) {
+        float muinj = mu[i * n + j];
+        float sigmainj = sigma[i * n + j];
+
+        for (int k = kk; k < kk + k_max; k++) {
+            for (int l = ll; l < ll + 8; ++l) {
+                sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
+            }
+        }
+        mu[i * n + j] = muinj;
+        sigma[i * n + j] = sigmainj;
+    }
+}
+
 void gp_regression_opt(float *X_grid,
                        float *K,
                        float *L_T,
@@ -500,7 +547,6 @@ void gp_regression_opt(float *X_grid,
     // 4-6. For all points in grid, compute k*, mu, sigma
 
     float *sums = (float *) malloc(8 * 8 * sizeof(float));
-    float *k_star = (float *) malloc(t_gp * sizeof(float));
     for (i = 0; i < n; i++) { // for all points in X_grid ([i])
         for (int jj = 0; jj < n; jj += 8) { // for all points in X_grid ([i][j])
             for (int j = jj; j < jj + 8; j++) {
@@ -515,38 +561,10 @@ void gp_regression_opt(float *X_grid,
                     sums[z] = 0;
                 }
                 for (int ll = 0; ll <= kk; ll += 8) {
-                    for (int j = jj; j < jj + 8; j++) {
-                        float muinj = mu[i * n + j];
-                        float sigmainj = sigma[i * n + j];
-                        float x_star = X_grid[2 * n * i + 2 * j];
-                        float y_star = X_grid[2 * n * i + 2 * j + 1];
-                        int x_, y_;
-                        float arg1x, arg1y;
-
-                        for (int k = kk; k < kk + 8; k++) {
-                            x_ = X[2 * k];
-                            y_ = X[2 * k + 1];
-                            arg1x = X_grid[x_ * 2 * n + 2 * y_];
-                            arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
-                            k_star[k] = expf(
-                                    -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
-                            if (ll == kk) {
-                                for (int l = ll; l < k; ++l) {
-                                    sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
-                                }
-                                v[k * 8 + (j % 8)] = (k_star[k] - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
-                                //mu[i * n + j] += k_star[k] * alpha[k];
-                                //sigma[i * n + j] -= v[k] * v[k];
-                                muinj += k_star[k] * alpha[k];
-                                sigmainj -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
-                            } else {
-                                for (int l = ll; l < ll + 8; ++l) {
-                                    sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
-                                }
-                            }
-                        }
-                        mu[i * n + j] = muinj;
-                        sigma[i * n + j] = sigmainj;
+                    if (ll == kk) {
+                        solve_triangle(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, sums, K, v);
+                    } else {
+                        mmm(mu, sigma, i, jj, kk, ll, n, maxIter, 8, sums, K, v);
                     }
                 }
             }
@@ -575,11 +593,10 @@ void gp_regression_opt(float *X_grid,
                 for (int j = jj; j < jj + 8; j++) {
                     float x_star = X_grid[2 * n * i + 2 * j];
                     float y_star = X_grid[2 * n * i + 2 * j + 1];
-                    float kstar = expf(
+                    float k_star = expf(
                             -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
-                    v[k * 8 + (j % 8)] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
-
-                    mu[i * n + j] += kstar * alpha[k];
+                    v[k * 8 + (j % 8)] = (k_star - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+                    mu[i * n + j] += k_star * alpha[k];
                     sigma[i * n + j] -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
                 }
             }
@@ -590,8 +607,6 @@ void gp_regression_opt(float *X_grid,
             }
         }
     }
-
-    free(k_star);
     free(sums);
     free(x);
     free(alpha);

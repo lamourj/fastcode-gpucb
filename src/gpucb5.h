@@ -56,6 +56,12 @@ void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size);
 
 void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower);
 
+void mmm(float *mu, float *sigma, int i, int jj, int kk, int ll, int n,
+         int maxIter, int k_max, float *sums, float *K, float *v);
+
+void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
+                    int maxIter, float *sums, float *K, float *v);
+
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower);
 
 void transpose(float *M, float *M_T, int d, int size);
