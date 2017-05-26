@@ -4,6 +4,7 @@
 #define FASTCODE_GPUCB_GPUCB5_H
 
 #include <stdbool.h>
+#include <immintrin.h>
 
 float GRID_MIN_;
 float GRID_INC_;
@@ -59,6 +60,8 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower);
 void mmm(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v);
 
 void mmm_vect(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v);
+
+inline float hsum_mm256(__m256 x);
 
 void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
                     int maxIter, float *sums, float *K, float *v);
