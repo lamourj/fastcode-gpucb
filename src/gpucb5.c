@@ -479,7 +479,7 @@ void gp_regression_opt(float *X_grid,
         _x2 = X_grid[x2 * 2 * n + 2 * y2];
         _y2 = X_grid[x2 * 2 * n + 2 * y2 + 1];
         float k_value = expf(-((_x1 - _x2) * (_x1 - _x2) + (_y1 - _y2) * (_y1 - _y2)) / 2.f);
-        K[i*maxIter+j] = k_value;
+        K[i * maxIter + j] = k_value;
         if (i == j) {
             K[i * maxIter + j] += 0.5;
         }
@@ -491,7 +491,7 @@ void gp_regression_opt(float *X_grid,
 
     float *x = (float *) malloc(t_gp * sizeof(float));
     float *alpha = (float *) malloc(t_gp * sizeof(float));
-    float *v = (float *) malloc(t_gp * sizeof(float));
+    float *v = (float *) malloc(8 * t_gp * sizeof(float));
 
 
     cholesky_solve2(t_gp, maxIter, K, T, x, 1);
@@ -507,14 +507,17 @@ void gp_regression_opt(float *X_grid,
                 mu[i * n + j] = 0;
                 sigma[i * n + j] = 1.0;
             }
+            for (int zz = 0; zz < 8 * t_gp; ++zz) {
+                v[zz] = 0;
+            }
             for (int kk = 0; kk + 7 < t_gp; kk += 8) {
                 for (int z = 0; z < 8 * 8; z++) {
                     sums[z] = 0;
                 }
                 for (int ll = 0; ll <= kk; ll += 8) {
                     for (int j = jj; j < jj + 8; j++) {
-                        float muinj = mu[i*n+j];
-                        float sigmainj = sigma[i*n+j];
+                        float muinj = mu[i * n + j];
+                        float sigmainj = sigma[i * n + j];
                         float x_star = X_grid[2 * n * i + 2 * j];
                         float y_star = X_grid[2 * n * i + 2 * j + 1];
                         int x_, y_;
@@ -525,24 +528,25 @@ void gp_regression_opt(float *X_grid,
                             y_ = X[2 * k + 1];
                             arg1x = X_grid[x_ * 2 * n + 2 * y_];
                             arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
-                            k_star[k] = expf(-((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
+                            k_star[k] = expf(
+                                    -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
                             if (ll == kk) {
                                 for (int l = ll; l < k; ++l) {
-                                    sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
+                                    sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
                                 }
-                                v[k] = (k_star[k] - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+                                v[k * 8 + (j % 8)] = (k_star[k] - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
                                 //mu[i * n + j] += k_star[k] * alpha[k];
                                 //sigma[i * n + j] -= v[k] * v[k];
                                 muinj += k_star[k] * alpha[k];
-                                sigmainj -= v[k] * v[k];
+                                sigmainj -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
                             } else {
                                 for (int l = ll; l < ll + 8; ++l) {
-                                    sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
+                                    sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
                                 }
                             }
                         }
-                        mu[i*n+j] = muinj;
-                        sigma[i*n+j] = sigmainj;
+                        mu[i * n + j] = muinj;
+                        sigma[i * n + j] = sigmainj;
                     }
                 }
             }
@@ -553,13 +557,13 @@ void gp_regression_opt(float *X_grid,
                 for (int ll = 0; ll + 7 < k; ll += 8) {
                     for (int j = jj; j < jj + 8; j++) {
                         for (int l = ll; l < ll + 8; ++l) {
-                            sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
+                            sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
                         }
                     }
                 }
                 for (int l = 8 * (k / 8); l < k; ++l) {
                     for (int j = jj; j < jj + 8; j++) {
-                        sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
+                        sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
                     }
                 }
                 int x_, y_;
@@ -571,11 +575,12 @@ void gp_regression_opt(float *X_grid,
                 for (int j = jj; j < jj + 8; j++) {
                     float x_star = X_grid[2 * n * i + 2 * j];
                     float y_star = X_grid[2 * n * i + 2 * j + 1];
-                    float kstar = expf(-((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
-                    v[k] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+                    float kstar = expf(
+                            -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
+                    v[k * 8 + (j % 8)] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
 
                     mu[i * n + j] += kstar * alpha[k];
-                    sigma[i * n + j] -= v[k] * v[k];
+                    sigma[i * n + j] -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
                 }
             }
             for (int j = jj; j < jj + 8; j++) {
