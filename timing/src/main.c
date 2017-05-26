@@ -16,6 +16,7 @@ const int N_MAX = 200; // max meshgrid size
 const int N_STEP = 100; // 
 const int ITER_MIN = 5; // min number of iterations
 const int ITER_MAX = 6; // min number of iterations
+const int ITER_MAX = 100; // min number of iterations
 const int ITER_STEP = 5; // min number of iterations
 const int NUM_RUNS = 3;
 const int COMPARE_TO_BASELINE = 1; // 0 or 1

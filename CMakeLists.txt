@@ -4,8 +4,8 @@ project(fastcode-gpucb)
 set(CMAKE_C_STANDARD 99)
 
 set(SOURCE_FILES
-        src/gpucb.h
-        src/gpucb.c
+        src/gpucb5.h
+        src/gpucb5.c
         src/main.c
         src/main.h
         )

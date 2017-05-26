@@ -1,19 +1,19 @@
-// This version includes the incremental cholesky factorization.
-#include "gpucb.h"
+// Optimized cholesky solved but no vectorization
+
+
+#include "gpucb4.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 
-const char *tag[10] = {"baseline"};
+const char *tag[20] = {"solve2_opt"};
 
 void initialize(const int I, const int N) {
     BETA_ = 100;
     GRID_MIN_ = -6;
     GRID_INC_ = 0.025;
-    //tag = "baseline";
-    //tag = (char*)malloc((strlen(tmp)+1) * sizeof(char));
 
     I_ = I;
     N_ = N;
@@ -37,10 +37,10 @@ void initialize(const int I, const int N) {
         printf("ERROR: Out of memory\n");
     }
 
-    initialize_meshgrid_baseline(X_grid_, N_, GRID_MIN_, GRID_INC_);
+    initialize_meshgrid(X_grid_, N_, GRID_MIN_, GRID_INC_);
 }
 
-void initialize_meshgrid_baseline(float *X_grid, int n, float min, float inc) {
+void initialize_meshgrid(float *X_grid, int n, float min, float inc) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             X_grid[i * 2 * n + 2 * j] = min + j * inc;
@@ -50,27 +50,26 @@ void initialize_meshgrid_baseline(float *X_grid, int n, float min, float inc) {
     }
 }
 
-float function_baseline(float x, float y) {
+float function(float x, float y) {
     // float t = sin(x) + cos(y);
     float t = -powf(x, 2) - powf(y, 2);
     printf("(C code) Sampled: [%.2f %.2f] result %f \n", x, y, t);
     return t;
 }
 
-void learn_baseline(float *X_grid,
-                    float *K,
-                    float *L_T,
-                    bool *sampled,
-                    int *X,
-                    float *T,
-                    int t,
-                    int maxIter,
-                    float *mu,
-                    float *sigma,
-                    float(*kernel)(float *, float *, float *, float *),
-                    const float beta,
-                    int n) {
-
+void learn(float *X_grid,
+           float *K,
+           float *L_T,
+           bool *sampled,
+           int *X,
+           float *T,
+           int t,
+           int maxIter,
+           float *mu,
+           float *sigma,
+           float(*kernel)(float *, float *, float *, float *),
+           const float beta,
+           int n) {
     bool debug = true;
     int maxI = 0;
     int maxJ = 0;
@@ -90,12 +89,12 @@ void learn_baseline(float *X_grid,
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
-    T[t] = function_baseline(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression_baseline(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
-                           n); // updating mu and sigma for every x in X_grid
+    T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
+    gp_regression(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
+                  n); // updating mu and sigma for every x in X_grid
 }
 
-float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
+float kernel2(float *x1, float *y1, float *x2, float *y2) {
     // RBF kernel
     float sigma = 1;
     return expf(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
@@ -103,7 +102,7 @@ float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
 
 void run() {
     for (int t = 0; t < I_; t++) {
-        learn_baseline(X_grid_, K_, L_, sampled_, X_, T_, t, I_, mu_, sigma_, kernel2_baseline, BETA_, N_);
+        learn(X_grid_, K_, L_, sampled_, X_, T_, t, I_, mu_, sigma_, kernel2, BETA_, N_);
     }
 }
 
@@ -127,7 +126,7 @@ void clean() {
     n:    The size of the data in matrix A to decompose
     size: The actual size of the rows
  */
-void cholesky_baseline(float *A, int n, int size) {
+void cholesky(float *A, int n, int size) {
     for (int i = 0; i < n; ++i) {
 
         // Update the off diagonal entries first.
@@ -157,7 +156,7 @@ void cholesky_baseline(float *A, int n, int size) {
     size: The actual size of the rows
 
  */
-void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int size) {
+void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size) {
     for (int i = n1; i < n2; ++i) {
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
@@ -187,7 +186,7 @@ void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int siz
  *      x: vector to put result in
  *      lower: if one the lower triangle system is solved, else the upper triangle system is solved.
 */
-void cholesky_solve2_baseline(int d, int size, float *LU, float *b, float *x, int lower) {
+void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) {
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
             float sum = 0.;
@@ -205,11 +204,125 @@ void cholesky_solve2_baseline(int d, int size, float *LU, float *b, float *x, in
             x[i] = (b[i] - sum) / LU[i * size + i];
         }
     }
+}
 
+void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower) {
+    // TODO: Unroll over i ? Blocking (LU and x accessed several times)
+
+    if (lower == 1) {
+        float sum0 = 0.;
+        for (int i = 0; i < d; ++i) {
+            float sum1 = 0.;
+            float sum2 = 0.;
+            float sum3 = 0.;
+
+            for (int k = 0; k + 3 < i; k += 4) {
+                /*printf("k: %d\n", k);
+                printf("k: %d\n", k+1);
+                printf("k: %d\n", k+2);
+                printf("k: %d\n", k+3);*/
+                const int isizek = i * size + k;
+                const float lu0 = LU[isizek];
+                const float xk0 = x[k];
+
+                const float lu1 = LU[isizek + 1];
+                const float xk1 = x[k + 1];
+
+                const float lu2 = LU[isizek + 2];
+                const float xk2 = x[k + 2];
+
+                const float lu3 = LU[isizek + 3];
+                const float xk3 = x[k + 3];
+
+                const float term0 = lu0 * xk0;
+                const float term1 = lu1 * xk1;
+                const float term2 = lu2 * xk2;
+                const float term3 = lu3 * xk3;
+
+                sum0 += term0;
+                sum1 += term1;
+                sum2 += term2;
+                sum3 += term3;
+            }
+            const float bi = b[i];
+            const float lu = LU[i * size + i];
+
+            const float sum01 = sum0 + sum1;
+            const float sum23 = sum2 + sum3;
+            const float sum0123 = sum01 + sum23;
+
+            float sumRest = 0;
+            for (int k = 4 * (i / 4); k < i; k++) {
+                // printf("k: %d\n", k);
+                const float lu0 = LU[i * size + k];
+                const float xk0 = x[k];
+                const float term0 = lu0 * xk0;
+                sumRest += term0;
+            }
+
+            const float sum = sum0123 + sumRest;
+            const float num = bi - sum;
+            const float xi = num / lu;
+            x[i] = xi;
+        }
+    } else {
+        for (int i = d - 1; i >= 0; --i) {
+            float sum0 = 0.;
+            float sum1 = 0.;
+            float sum2 = 0.;
+            float sum3 = 0.;
+
+            for (int k = i + 1; k + 3 < d; ++k) {
+                const int isizek = i * size + k;
+
+                const float lu0 = LU[isizek];
+                const float xk0 = x[k];
+
+                const float lu1 = LU[isizek + 1];
+                const float xk1 = x[k + 1];
+
+                const float lu2 = LU[isizek + 2];
+                const float xk2 = x[k + 2];
+
+                const float lu3 = LU[isizek + 3];
+                const float xk3 = x[k + 3];
+
+                const float term0 = lu0 * xk0;
+                const float term1 = lu1 * xk1;
+                const float term2 = lu2 * xk2;
+                const float term3 = lu3 * xk3;
+
+                sum0 += term0;
+                sum1 += term1;
+                sum2 += term2;
+                sum3 += term3;
+            }
+
+            float sumRest = 0;
+            const float sum01 = sum0 + sum1;
+            const float sum23 = sum2 + sum3;
+            const float sum0123 = sum01 + sum23;
+            const float bi = b[i];
+            const float lu = LU[i * size + i];
+
+
+            for (int k = 4 * ((i + 1) / 4); k < d; k++) {
+                printf("k: %d\n", k);
+                const float lu0 = LU[i * size + k];
+                const float xk0 = x[k];
+                const float term0 = lu0 * xk0;
+                sumRest += term0;
+            }
+            const float sum = sum0123 + sumRest;
+            const float num = bi - sum;
+            const float xi = num / lu;
+            x[i] = xi;
+        }
+    }
 }
 
 // Old version.
-void cholesky_solve_baseline(int d, float *LU, float *b, float *x) {
+void cholesky_solve(int d, float *LU, float *b, float *x) {
     float y[d];
     for (int i = 0; i < d; ++i) {
         float sum = 0.;
@@ -224,7 +337,7 @@ void cholesky_solve_baseline(int d, float *LU, float *b, float *x) {
 }
 
 
-void transpose_baseline(float *M, float *M_T, int d, int size) {
+void transpose(float *M, float *M_T, int d, int size) {
     for (int i = 0; i < d; ++i) {
         for (int j = 0; j < d; ++j) {
             M_T[j * size + i] = M[i * size + j];
@@ -233,17 +346,17 @@ void transpose_baseline(float *M, float *M_T, int d, int size) {
 }
 
 
-void gp_regression_baseline(float *X_grid,
-                            float *K,
-                            float *L_T,
-                            int *X,
-                            float *T,
-                            int t,
-                            int maxIter,
-                            float   (*kernel)(float *, float *, float *, float *),
-                            float *mu,
-                            float *sigma,
-                            int n) {
+void gp_regression(float *X_grid,
+                   float *K,
+                   float *L_T,
+                   int *X,
+                   float *T,
+                   int t,
+                   int maxIter,
+                   float   (*kernel)(float *, float *, float *, float *),
+                   float *mu,
+                   float *sigma,
+                   int n) {
     int t_gp = t + 1;
 
     // extend the K matrix
@@ -264,7 +377,7 @@ void gp_regression_baseline(float *X_grid,
 
 
     // 2. Cholesky
-    incremental_cholesky_baseline(K, L_T, t_gp - 1, t_gp, maxIter);
+    incremental_cholesky(K, L_T, t_gp - 1, t_gp, maxIter);
 
     // 3. Compute alpha
     float x[t_gp];
@@ -272,8 +385,8 @@ void gp_regression_baseline(float *X_grid,
     float v[t_gp];
 
 
-    cholesky_solve2_baseline(t_gp, maxIter, K, T, x, 1);
-    cholesky_solve2_baseline(t_gp, maxIter, L_T, x, alpha, 0);
+    cholesky_solve2(t_gp, maxIter, K, T, x, 1);
+    cholesky_solve2(t_gp, maxIter, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
@@ -300,10 +413,14 @@ void gp_regression_baseline(float *X_grid,
             }
 
             mu[i * n + j] = f_star;
-            cholesky_solve2_baseline(t_gp, maxIter, K, k_star, v, 1);
+            //printf("fstar is: %f", f_star);
+            //printf("write in mu at %d \n", i*n+j);
+            cholesky_solve2(t_gp, maxIter, K, k_star, v, 1);
+            //printf("loop solve done\n");
 
             float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
             for (int k = 0; k < t_gp; k++) {
+                //variance -= v->data[k] * v->data[k];
                 variance -= v[k] * v[k];
             }
 

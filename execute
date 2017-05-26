@@ -4,7 +4,7 @@
 #gcc -O3 -fno-tree-vectorize -L/usr/local/lib -lgsl -lgslcblas src/main.o
 
 # Number of iterations to run (changes both python and C code)
-NITER=10
+NITER=20
 
 
 # V3:
@@ -12,7 +12,7 @@ NITER=10
 
 
 # Baseline:
-gcc -O3 -std=c99 -fno-tree-vectorize src/main.c src/main.h src/gpucb.h src/gpucb.c
+gcc -std=c99 -pg -fno-tree-vectorize src/main.c src/main.h src/gpucb5.h src/gpucb5.c
 
 
 ./a.out $NITER
