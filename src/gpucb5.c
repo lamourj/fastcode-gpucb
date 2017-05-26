@@ -505,6 +505,8 @@ void gp_regression_opt(float *X_grid,
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
+    float *sums = (float *) malloc(8 * 8 * sizeof(float));
+    float *k_star = (float *) malloc(t_gp * sizeof(float));
     for (i = 0; i < n; i++) { // for all points in X_grid ([i])
         for (int jj = 0; jj < n; jj += 8) { // for all points in X_grid ([i][j])
             for (int j = jj; j < jj + 8; j++) {
@@ -514,7 +516,6 @@ void gp_regression_opt(float *X_grid,
                 sigma[i * n + j] = (*kernel)(&x_star, &y_star, &x_star, &y_star);
             }
             // float sums[8 * 8];
-            float *sums = (float *) malloc(8 * 8 * sizeof(float));
             for (int kk = 0; kk + 7 < t_gp; kk += 8) {
                 for (int z = 0; z < 8 * 8; z++) {
                     sums[z] = 0;
@@ -524,7 +525,6 @@ void gp_regression_opt(float *X_grid,
                         float x_star = X_grid[2 * n * i + 2 * j];
                         float y_star = X_grid[2 * n * i + 2 * j + 1];
                         // float k_star[t_gp];
-                        float *k_star = (float *) malloc(t_gp * sizeof(float));
                         int x_, y_;
                         float arg1x, arg1y;
 
@@ -547,7 +547,6 @@ void gp_regression_opt(float *X_grid,
                                 }
                             }
                         }
-                        free(k_star);
                     }
                 }
             }
@@ -568,7 +567,6 @@ void gp_regression_opt(float *X_grid,
                         sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l];
                     }
                 }
-
                 int x_, y_;
                 float arg1x, arg1y;
                 x_ = X[2 * k];
@@ -585,7 +583,6 @@ void gp_regression_opt(float *X_grid,
                     sigma[i * n + j] -= v[k] * v[k];
                 }
             }
-            free(sums);
             for (int j = jj; j < jj + 8; j++) {
                 if (sigma[i * n + j] < 0) {
                     sigma[i * n + j] = 0.0;
@@ -594,6 +591,8 @@ void gp_regression_opt(float *X_grid,
         }
     }
 
+    free(k_star);
+    free(sums);
     free(x);
     free(alpha);
     free(v);
