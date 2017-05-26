@@ -57,9 +57,9 @@ void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size);
 
 void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower);
 
-void mmm(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v);
+void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
 
-void mmm_vect(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v);
+void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
 
 float hsum_mm256(__m256 x);
 

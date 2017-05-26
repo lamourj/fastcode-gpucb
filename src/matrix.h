@@ -17,10 +17,10 @@ void clean();
 
 float frand();
 
-void mmm_vect(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v);
-
 float hsum_mm256(__m256 x);
 
-void mmm(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v);
+void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
+
+void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
 
 #endif //FASTCODE_GPUCB_MATRIX_H

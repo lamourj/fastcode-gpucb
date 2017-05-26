@@ -471,11 +471,11 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
             float kstar = expf(
                     -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
             for (int l = ll; l < k; ++l) {
-                sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[(j % 8) * t_gp + l];
+                sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
             }
-            v[(j % 8) * t_gp + k] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+            v[k * 8 + (j % 8)] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
             muinj += kstar * alpha[k];
-            sigmainj -= v[(j % 8) * t_gp + k] * v[(j % 8) * t_gp + k];
+            sigmainj -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
 
         }
         mu[i * n + j] = muinj;
@@ -545,49 +545,72 @@ float hsum_mm256(__m256 x) {
 }
 
 
-/*void mmm_vect_(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
+void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
     for (int j = jj; j < jj + 8; j++) {
-        const int j_mod_8 = j % 8;
-
-        for (int k = kk; k < kk + 8; k++) {
-            float tmp_sum = 0;
-            const int kmaxIterll = k * maxIter + ll;
-            const float v0 = v[ll * 8 + j_mod_8];
-            const float v1 = v[(ll + 1) * 8 + j_mod_8];
-            const float v2 = v[(ll + 2) * 8 + j_mod_8];
-            const float v3 = v[(ll + 3) * 8 + j_mod_8];
-            const float v4 = v[(ll + 4) * 8 + j_mod_8];
-            const float v5 = v[(ll + 5) * 8 + j_mod_8];
-            const float v6 = v[(ll + 6) * 8 + j_mod_8];
-            const float v7 = v[(ll + 7) * 8 + j_mod_8];
-
-
-            __m256 k_vector = _mm256_loadu_ps(K + k * maxIter + ll);
-            __m256 v_vector = _mm256_setr_ps(v0, v1, v2, v3, v4, v5, v6, v7);
-
-            __m256 k_v = _mm256_mul_ps(k_vector, v_vector);
-
-            sums[(k % 8) * 8 + j_mod_8] += hsum_mm256(k_v);
-        }
-    }
-}*/
-
-
-void mmm(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v) {
-    for (int j = jj; j < jj + 8; j++) {
-
         for (int k = kk; k < kk + 8; k++) {
             float tmp_sum = 0;
             for (int l = ll; l < ll + 8; ++l) {
-                tmp_sum += K[k * maxIter + l] * v[(j % 8) * t_gp + l];
+                tmp_sum += K[k * maxIter + l] * v[l * 8 + (j % 8)];
             }
             sums[(k % 8) * 8 + j % 8] += tmp_sum;
         }
-
     }
 }
 
 
+void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
+
+    for (int k = kk; k < kk + k_max; k++) {
+        const int k_maxIter_ll = k * maxIter + ll;
+
+        __m256 sum = _mm256_loadu_ps(sums + (k % 8) * 8);
+
+        const __m256 k_element_0 = _mm256_set1_ps(K[k_maxIter_ll]);
+        const __m256 v_row_0 = _mm256_loadu_ps(v + ll * 8);
+        const __m256 v_row_1 = _mm256_loadu_ps(v + (ll + 1) * 8);
+        const __m256 k_element_1 = _mm256_set1_ps(K[k_maxIter_ll + 1]);
+        const __m256 k_element_2 = _mm256_set1_ps(K[k_maxIter_ll + 2]);
+        const __m256 v_row_2 = _mm256_loadu_ps(v + (ll + 2) * 8);
+
+        // l = ll
+        sum = _mm256_fmadd_ps(k_element_0, v_row_0, sum);
+        const __m256 k_element_3 = _mm256_set1_ps(K[k_maxIter_ll + 3]);
+        const __m256 v_row_3 = _mm256_loadu_ps(v + (ll + 3) * 8);
+
+        // l = ll + 1
+        sum = _mm256_fmadd_ps(k_element_1, v_row_1, sum);
+        const __m256 k_element_4 = _mm256_set1_ps(K[k_maxIter_ll + 4]);
+        const __m256 v_row_4 = _mm256_loadu_ps(v + (ll + 4) * 8);
+
+        // l = ll + 2
+        sum = _mm256_fmadd_ps(k_element_2, v_row_2, sum);
+        const __m256 k_element_5 = _mm256_set1_ps(K[k_maxIter_ll + 5]);
+        const __m256 v_row_5 = _mm256_loadu_ps(v + (ll + 5) * 8);
+
+        // l = ll + 3
+        sum = _mm256_fmadd_ps(k_element_3, v_row_3, sum);
+        const __m256 k_element_6 = _mm256_set1_ps(K[k_maxIter_ll + 6]);
+        const __m256 v_row_6 = _mm256_loadu_ps(v + (ll + 6) * 8);
+
+        // l = ll + 4
+        sum = _mm256_fmadd_ps(k_element_4, v_row_4, sum);
+        const __m256 k_element_7 = _mm256_set1_ps(K[k_maxIter_ll + 7]);
+        const __m256 v_row_7 = _mm256_loadu_ps(v + (ll + 7) * 8);
+
+        // l = ll + 5
+        sum = _mm256_fmadd_ps(k_element_5, v_row_5, sum);
+
+        // l = ll + 6
+        sum = _mm256_fmadd_ps(k_element_6, v_row_6, sum);
+
+        // l = ll + 7
+        sum = _mm256_fmadd_ps(k_element_7, v_row_7, sum);
+
+        _mm256_storeu_ps(sums + (k % 8) * 8, sum);
+    }
+}
+
+/*
 void mmm_vect(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v) {
     const int ll8 = ll * 8;
     const int kk80_mod_8 = (kk % 8) * 8;
@@ -670,7 +693,7 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float 
         const float new_sum_7 = sum_7 + tmp_sum_7;
         sums[kk87_mod_8 + j_mod_8] = new_sum_7;
     }
-}
+}*/
 
 void gp_regression_opt(float *X_grid,
                        float *K,
@@ -737,8 +760,8 @@ void gp_regression_opt(float *X_grid,
                     if (ll == kk) {
                         solve_triangle(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, t_gp, sums, K, v);
                     } else {
-                        mmm_vect(jj, kk, ll, maxIter, t_gp, sums, K, v);
-                        // mmm(jj, kk, ll, maxIter, t_gp, sums, K, v);
+                        mmm_vect(jj, kk, ll, maxIter, 8, sums, K, v);
+                        // mmm(jj, kk, ll, maxIter, 8, sums, K, v);
                     }
                 }
             }
@@ -749,13 +772,13 @@ void gp_regression_opt(float *X_grid,
                 for (int ll = 0; ll + 7 < k; ll += 8) {
                     for (int j = jj; j < jj + 8; j++) {
                         for (int l = ll; l < ll + 8; ++l) {
-                            sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[(j % 8) * t_gp + l];
+                            sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
                         }
                     }
                 }
                 for (int l = 8 * (k / 8); l < k; ++l) {
                     for (int j = jj; j < jj + 8; j++) {
-                        sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[(j % 8) * t_gp + l];
+                        sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
                     }
                 }
                 int x_, y_;
@@ -769,9 +792,9 @@ void gp_regression_opt(float *X_grid,
                     float y_star = X_grid[2 * n * i + 2 * j + 1];
                     float k_star = expf(
                             -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
-                    v[(j % 8) * t_gp + k] = (k_star - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+                    v[k * 8 + (j % 8)] = (k_star - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
                     mu[i * n + j] += k_star * alpha[k];
-                    sigma[i * n + j] -= v[(j % 8) * t_gp + k] * v[(j % 8) * t_gp + k];
+                    sigma[i * n + j] -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
                 }
             }
             for (int j = jj; j < jj + 8; j++) {
