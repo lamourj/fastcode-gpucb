@@ -11,6 +11,7 @@
 const char *tag[10] = {"inlined"};
 
 void initialize(const int I, const int N) {
+    printf("Init gpucb5\n");
     if (N % 8 != 0) {
         printf("n is not divisible by 8 !!! \n");
     }
@@ -482,20 +483,16 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
     }
 }
 
-void mmm(float *mu, float *sigma, int i, int jj, int kk, int ll, int n,
-         int maxIter, int k_max, float *sums, float *K, float *v) {
-
+void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
     for (int j = jj; j < jj + 8; j++) {
-        float muinj = mu[i * n + j];
-        float sigmainj = sigma[i * n + j];
-
+        const int j_mod_8 = j % 8;
         for (int k = kk; k < kk + k_max; k++) {
+            float tmp_sum = 0;
             for (int l = ll; l < ll + 8; ++l) {
-                sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
+                tmp_sum += K[k * maxIter + l] * v[l * 8 + j_mod_8];
             }
+            sums[(k % 8) * 8 + j % 8] += tmp_sum;
         }
-        mu[i * n + j] = muinj;
-        sigma[i * n + j] = sigmainj;
     }
 }
 
@@ -564,7 +561,7 @@ void gp_regression_opt(float *X_grid,
                     if (ll == kk) {
                         solve_triangle(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, sums, K, v);
                     } else {
-                        mmm(mu, sigma, i, jj, kk, ll, n, maxIter, 8, sums, K, v);
+                        mmm(jj, kk, ll, maxIter, 8, sums, K, v);
                     }
                 }
             }

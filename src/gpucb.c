@@ -9,6 +9,7 @@
 const char *tag[10] = {"baseline"};
 
 void initialize(const int I, const int N) {
+    printf("Init baseline\n");
     BETA_ = 100;
     GRID_MIN_ = -6;
     GRID_INC_ = 0.025;
