@@ -583,12 +583,19 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, float *sums, float *K, float 
     const int kk86_mod_8 = ((kk + 6) % 8) * 8;
     const int kk87_mod_8 = ((kk + 7) % 8) * 8;
 
+    const __m256 k_vector0 = _mm256_loadu_ps(K + kk * maxIter + ll);
+    const __m256 k_vector1 = _mm256_loadu_ps(K + (kk + 1) * maxIter + ll);
+    const __m256 k_vector2 = _mm256_loadu_ps(K + (kk + 2) * maxIter + ll);
+    const __m256 k_vector3 = _mm256_loadu_ps(K + (kk + 3) * maxIter + ll);
+    const __m256 k_vector4 = _mm256_loadu_ps(K + (kk + 4) * maxIter + ll);
+    const __m256 k_vector5 = _mm256_loadu_ps(K + (kk + 5) * maxIter + ll);
+    const __m256 k_vector6 = _mm256_loadu_ps(K + (kk + 6) * maxIter + ll);
+    const __m256 k_vector7 = _mm256_loadu_ps(K + (kk + 7) * maxIter + ll);
 
     for (int j = jj; j < jj + 8; j++) {
         const int j_mod_8 = j % 8;
         const int ll8_j_mod_8 = ll8 + j_mod_8;
-
-        const __m256 k_vector0 = _mm256_loadu_ps(K + kk * maxIter + ll); // load for next it
+        const float sum_0 = sums[kk80_mod_8 + j_mod_8];
 
         const float v0 = v[ll8_j_mod_8];
         const float v1 = v[ll8_j_mod_8 + 8];
@@ -603,17 +610,14 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, float *sums, float *K, float 
 
         // k = kk
         const __m256 k_v0 = _mm256_mul_ps(k_vector0, v_vector);
-        const float sum_0 = sums[(kk % 8) * 8 + j_mod_8];
-        const float sum_1 = sums[((kk + 1) % 8) * 8 + j_mod_8]; // load for next it
-        const __m256 k_vector1 = _mm256_loadu_ps(K + (kk + 1) * maxIter + ll); // load for next it
+        const float sum_1 = sums[kk81_mod_8 + j_mod_8]; // load for next it
         const float sum_tmp_0 = hsum_mm256(k_v0);
         const float new_sum_0 = sum_0 + sum_tmp_0;
         sums[kk80_mod_8 + j_mod_8] = new_sum_0;
 
         // k = kk + 1
         const __m256 k_v1 = _mm256_mul_ps(k_vector1, v_vector);
-        const float sum_2 = sums[((kk + 2) % 8) * 8 + j_mod_8]; // load for next it
-        const __m256 k_vector2 = _mm256_loadu_ps(K + (kk + 2) * maxIter + ll); // load for next it
+        const float sum_2 = sums[kk82_mod_8 + j_mod_8]; // load for next it
         const float tmp_sum_1 = hsum_mm256(k_v1);
         const float new_sum_1 = sum_1 + tmp_sum_1;
         sums[kk81_mod_8 + j_mod_8] = new_sum_1;
@@ -621,40 +625,35 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, float *sums, float *K, float 
 
         // k = kk + 2
         const __m256 k_v2 = _mm256_mul_ps(k_vector2, v_vector);
-        const float sum_3 = sums[((kk + 3) % 8) * 8 + j_mod_8]; // load for next it
-        const __m256 k_vector3 = _mm256_loadu_ps(K + (kk + 3) * maxIter + ll); // load for next it
+        const float sum_3 = sums[kk83_mod_8 + j_mod_8]; // load for next it
         const float tmp_sum_2 = hsum_mm256(k_v2);
         const float new_sum_2 = sum_2 + tmp_sum_2;
         sums[kk82_mod_8 + j_mod_8] = new_sum_2;
 
         // k = kk + 3
         const __m256 k_v3 = _mm256_mul_ps(k_vector3, v_vector);
-        const float sum_4 = sums[((kk + 4) % 8) * 8 + j_mod_8];// load for next it
-        const __m256 k_vector4 = _mm256_loadu_ps(K + (kk + 4) * maxIter + ll); // load for next it
+        const float sum_4 = sums[kk84_mod_8 + j_mod_8];// load for next it
         const float tmp_sum_3 = hsum_mm256(k_v3);
         const float new_sum_3 = sum_3 + tmp_sum_3;
         sums[kk83_mod_8 + j_mod_8] = new_sum_3;
 
         // k = kk + 4
         const __m256 k_v4 = _mm256_mul_ps(k_vector4, v_vector);
-        const float sum_5 = sums[((kk + 5) % 8) * 8 + j_mod_8];// load for next it
-        const __m256 k_vector5 = _mm256_loadu_ps(K + (kk + 5) * maxIter + ll); // load for next it
+        const float sum_5 = sums[kk85_mod_8 + j_mod_8];// load for next it
         const float tmp_sum_4 = hsum_mm256(k_v4);
         const float new_sum_4 = sum_4 + tmp_sum_4;
         sums[kk84_mod_8 + j_mod_8] = new_sum_4;
 
         // k = kk + 5
         const __m256 k_v5 = _mm256_mul_ps(k_vector5, v_vector);
-        const float sum_6 = sums[((kk + 6) % 8) * 8 + j_mod_8]; // load for next it
-        const __m256 k_vector6 = _mm256_loadu_ps(K + (kk + 6) * maxIter + ll); // load for next it
+        const float sum_6 = sums[kk86_mod_8 + j_mod_8]; // load for next it
         const float tmp_sum_5 = hsum_mm256(k_v5);
         const float new_sum_5 = sum_5 + tmp_sum_5;
         sums[kk85_mod_8 + j_mod_8] = new_sum_5;
 
         // k = kk + 6
         const __m256 k_v6 = _mm256_mul_ps(k_vector6, v_vector);
-        const float sum_7 = sums[((kk + 7) % 8) * 8 + j_mod_8]; // load for next it
-        const __m256 k_vector7 = _mm256_loadu_ps(K + (kk + 7) * maxIter + ll); // load for next it
+        const float sum_7 = sums[kk87_mod_8 + j_mod_8]; // load for next it
         const float tmp_sum_6 = hsum_mm256(k_v6);
         const float new_sum_6 = sum_6 + tmp_sum_6;
         sums[kk86_mod_8 + j_mod_8] = new_sum_6;
