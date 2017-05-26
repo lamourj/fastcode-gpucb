@@ -97,14 +97,10 @@ endif()
 
 
 set(SOURCE_FILES
-    ../../src/gpucb.h
-    ../../src/gpucb.c
-    ../../src/mathHelpers.h
-    ../../src/mathHelpers.c
     ../../src/gpucb3.h
     ../../src/gpucb3.c
-    ../../src/mathHelpers3.h
-    ../../src/mathHelpers3.c
+    src/baseline.c
+    src/baseline.h
     src/main.c
     src/main.h
 )
@@ -120,6 +116,7 @@ endif(DEFINED PCM_DEPENDENCIES)
 if (DEFINED PCM_LINK_DEPENDENCIES)
     target_link_libraries(comp ${PCM_LINK_DEPENDENCIES})
 endif(DEFINED PCM_LINK_DEPENDENCIES)
+
 
 
 
