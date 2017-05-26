@@ -97,10 +97,8 @@ endif()
 
 
 set(SOURCE_FILES
-    ../../src/gpucb.h
-    ../../src/gpucb.c
-    src/baseline.c
-    src/baseline.h
+    ../../src/matrix.h
+    ../../src/matrix.c
     src/main.c
     src/main.h
 )

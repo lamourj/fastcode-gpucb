@@ -10,19 +10,19 @@
 
 
 // ONLY CHANGE THIS
-#include "../../src/gpucb.h"
+#include "../../src/matrix.h"
 const int N_MIN = 200; // min meshgrid size
 const int N_MAX = 200; // max meshgrid size. MUST BE REACHABLE WITH STEP
 const int N_STEP = 8; // 
 const int ITER_MIN = 50; // min number of iterations
 const int ITER_MAX = 200; // max number of iterations. MUST BE REACHABLE WITH STEP
 const int ITER_STEP = 5; // min number of iterations
-const int NUM_RUNS = 3;
+const int NUM_RUNS = 20;
 const int COMPARE_TO_BASELINE = 1; // 0 or 1
 const int TIME_ITERATIONS = 1; // 0: time different N, 1: time different iterations
 // DO NOT CHANGE THE FOLLOWING LINES
 
-void validate(const int II, const int NN, double cycles_measured){
+/*void validate(const int II, const int NN, double cycles_measured){
 	printf("validate for I=%d, N=%d \n", II, NN);
 	initialize_bl(II,NN);
 	cycles_count_start();
@@ -55,6 +55,7 @@ void validate(const int II, const int NN, double cycles_measured){
 	clean();
 	clean_bl();
 }
+*/
 
 int main() {
 	if(!(N_STEP % 8 == 0) || !(N_MIN % 8 == 0)) {
@@ -129,12 +130,14 @@ int main() {
 		fclose(fp);
 	}
 
+	/*
 	if(COMPARE_TO_BASELINE==1){
 		if(TIME_ITERATIONS)
 			validate(ITER_MAX, N_MIN, (double) cycle_cnt / NUM_RUNS);
 		if(TIME_ITERATIONS==0)
 			validate(ITER_MIN, N_MAX, (double) cycle_cnt / NUM_RUNS);
 	}
+	*/
 
 	perf_done();
 

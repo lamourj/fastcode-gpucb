@@ -6,7 +6,7 @@
 #include <immintrin.h>
 
 
-const char *tag[10] = {"matrix"};
+const char *tag[10] = {"matrix_v"};
 
 float *A, *B, *C, *T;
 
@@ -128,8 +128,10 @@ float hsum_mm256(__m256 x) {
 }
 
 
+/*
 int main() {
     initialize(0, 0);
     run();
     clean();
 }
+*/
