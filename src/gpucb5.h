@@ -57,14 +57,14 @@ void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size);
 
 void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower);
 
-void mmm(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v);
+void mmm(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v);
 
-void mmm_vect(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v);
+void mmm_vect(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v);
 
-inline float hsum_mm256(__m256 x);
+float hsum_mm256(__m256 x);
 
 void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                    int maxIter, float *sums, float *K, float *v);
+                    int maxIter, int t_gp, float *sums, float *K, float *v);
 
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower);
 

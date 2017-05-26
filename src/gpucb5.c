@@ -454,7 +454,7 @@ void gp_regression(float *X_grid,
 
 
 void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                    int maxIter, float *sums, float *K, float *v) {
+                    int maxIter, int t_gp, float *sums, float *K, float *v) {
     for (int j = jj; j < jj + 8; j++) {
         float muinj = mu[i * n + j];
         float sigmainj = sigma[i * n + j];
@@ -471,11 +471,11 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
             float kstar = expf(
                     -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
             for (int l = ll; l < k; ++l) {
-                sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
+                sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[(j % 8) * t_gp + l];
             }
-            v[k * 8 + (j % 8)] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+            v[(j % 8) * t_gp + k] = (kstar - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
             muinj += kstar * alpha[k];
-            sigmainj -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
+            sigmainj -= v[(j % 8) * t_gp + k] * v[(j % 8) * t_gp + k];
 
         }
         mu[i * n + j] = muinj;
@@ -483,7 +483,7 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
     }
 }
 
-void mmm(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
+/*void mmm(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
     const int ll8_0 = ll * 8;
     const int ll8_1 = ll8_0 + 8;
     const int ll8_2 = ll8_0 + 16;
@@ -531,9 +531,9 @@ void mmm(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
             sums[(k % 8) * 8 + j_mod_8] += sum;
         }
     }
-}
+}*/
 
-inline float hsum_mm256(__m256 x) {
+float hsum_mm256(__m256 x) {
     __m128 hi = _mm256_extractf128_ps(x, 1);
     __m128 lo = _mm256_extractf128_ps(x, 0);
     lo = _mm_add_ps(hi, lo);
@@ -572,7 +572,23 @@ inline float hsum_mm256(__m256 x) {
     }
 }*/
 
-void mmm_vect(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
+
+void mmm(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v) {
+    for (int j = jj; j < jj + 8; j++) {
+
+        for (int k = kk; k < kk + 8; k++) {
+            float tmp_sum = 0;
+            for (int l = ll; l < ll + 8; ++l) {
+                tmp_sum += K[k * maxIter + l] * v[(j % 8) * t_gp + l];
+            }
+            sums[(k % 8) * 8 + j % 8] += tmp_sum;
+        }
+
+    }
+}
+
+
+void mmm_vect(int jj, int kk, int ll, int maxIter, int t_gp, float *sums, float *K, float *v) {
     const int ll8 = ll * 8;
     const int kk80_mod_8 = (kk % 8) * 8;
     const int kk81_mod_8 = ((kk + 1) % 8) * 8;
@@ -594,19 +610,9 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, float *sums, float *K, float 
 
     for (int j = jj; j < jj + 8; j++) {
         const int j_mod_8 = j % 8;
-        const int ll8_j_mod_8 = ll8 + j_mod_8;
         const float sum_0 = sums[kk80_mod_8 + j_mod_8];
 
-        const float v0 = v[ll8_j_mod_8];
-        const float v1 = v[ll8_j_mod_8 + 8];
-        const float v2 = v[ll8_j_mod_8 + 16];
-        const float v3 = v[ll8_j_mod_8 + 24];
-        const float v4 = v[ll8_j_mod_8 + 32];
-        const float v5 = v[ll8_j_mod_8 + 40];
-        const float v6 = v[ll8_j_mod_8 + 48];
-        const float v7 = v[ll8_j_mod_8 + 56];
-        const __m256 v_vector = _mm256_setr_ps(v0, v1, v2, v3, v4, v5, v6, v7);
-
+        const __m256 v_vector = _mm256_loadu_ps(v + j_mod_8 * t_gp + ll);
 
         // k = kk
         const __m256 k_v0 = _mm256_mul_ps(k_vector0, v_vector);
@@ -729,9 +735,10 @@ void gp_regression_opt(float *X_grid,
                 }
                 for (int ll = 0; ll <= kk; ll += 8) {
                     if (ll == kk) {
-                        solve_triangle(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, sums, K, v);
+                        solve_triangle(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, t_gp, sums, K, v);
                     } else {
-                        mmm_vect(jj, kk, ll, maxIter, sums, K, v);
+                        mmm_vect(jj, kk, ll, maxIter, t_gp, sums, K, v);
+                        // mmm(jj, kk, ll, maxIter, t_gp, sums, K, v);
                     }
                 }
             }
@@ -742,13 +749,13 @@ void gp_regression_opt(float *X_grid,
                 for (int ll = 0; ll + 7 < k; ll += 8) {
                     for (int j = jj; j < jj + 8; j++) {
                         for (int l = ll; l < ll + 8; ++l) {
-                            sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
+                            sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[(j % 8) * t_gp + l];
                         }
                     }
                 }
                 for (int l = 8 * (k / 8); l < k; ++l) {
                     for (int j = jj; j < jj + 8; j++) {
-                        sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
+                        sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[(j % 8) * t_gp + l];
                     }
                 }
                 int x_, y_;
@@ -762,9 +769,9 @@ void gp_regression_opt(float *X_grid,
                     float y_star = X_grid[2 * n * i + 2 * j + 1];
                     float k_star = expf(
                             -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
-                    v[k * 8 + (j % 8)] = (k_star - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
+                    v[(j % 8) * t_gp + k] = (k_star - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
                     mu[i * n + j] += k_star * alpha[k];
-                    sigma[i * n + j] -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
+                    sigma[i * n + j] -= v[(j % 8) * t_gp + k] * v[(j % 8) * t_gp + k];
                 }
             }
             for (int j = jj; j < jj + 8; j++) {
