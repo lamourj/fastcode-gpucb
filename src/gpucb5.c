@@ -664,11 +664,10 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
         sum_3 = _mm256_fmadd_ps(k_element_6_3, v_row_6, sum_3);
         sum_3 = _mm256_fmadd_ps(k_element_7_3, v_row_7, sum_3);
 
-
         _mm256_storeu_ps(sums + ((k + 3) % 8) * 8, sum_3);
+
     }
-    for (int k = 4 * ((kk + k_max) / 4) + 1; k + 1 < kk_k_max; k += 2) {
-        // k = 0
+    for (int k = 4 * ((kk + k_max) / 4); k + 1 < kk_k_max; k += 2) {
         __m256 sum_0 = _mm256_loadu_ps(sums + (k % 8) * 8);
         __m256 sum_1 = _mm256_loadu_ps(sums + ((k + 1) % 8) * 8);
         const int k_maxIter_ll_0 = k * maxIter + ll;
@@ -708,10 +707,8 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
         const __m256 k_element_5_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 5]);
         sum_0 = _mm256_fmadd_ps(k_element_5_0, v_row_5, sum_0);
 
-        // l = ll + 3
         const __m256 k_element_6_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 6]);
 
-        // l = ll + 4
         sum_0 = _mm256_fmadd_ps(k_element_6_0, v_row_6, sum_0);
         const __m256 k_element_7_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 7]);
         const __m256 k_element_7_1 = _mm256_set1_ps(K[k_maxIter_ll_1 + 7]);
@@ -724,50 +721,42 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
 
         _mm256_storeu_ps(sums + ((k + 1) % 8) * 8, sum_1);
     }
-    for (int k = 2 * ((kk + k_max) / 2) + 1; k < kk_k_max; k += 1) {
-        printf("kapuuttttt\n");
-        // k = 0
+    for (int k = 2 * ((kk + k_max) / 2); k < kk_k_max; k += 1) {
         const int k_maxIter_ll_0 = k * maxIter + ll;
 
         __m256 sum_0 = _mm256_loadu_ps(sums + (k % 8) * 8);
 
-        const __m256 k_element_0_0 = _mm256_set1_ps(K[k_maxIter_ll_0]);
-        const __m256 k_element_1_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 1]);
-        const __m256 k_element_2_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 2]);
+        const __m256 k_element_0 = _mm256_set1_ps(K[k_maxIter_ll_0]);
+        const __m256 k_element_1 = _mm256_set1_ps(K[k_maxIter_ll_0 + 1]);
+        const __m256 k_element_2 = _mm256_set1_ps(K[k_maxIter_ll_0 + 2]);
 
-        // l = ll
-        sum_0 = _mm256_fmadd_ps(k_element_0_0, v_row_0, sum_0);
-        const __m256 k_element_3_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 3]);
+        sum_0 = _mm256_fmadd_ps(k_element_0, v_row_0, sum_0);
+        const __m256 k_element_3 = _mm256_set1_ps(K[k_maxIter_ll_0 + 3]);
 
-        // l = ll + 1
-        sum_0 = _mm256_fmadd_ps(k_element_1_0, v_row_1, sum_0);
-        const __m256 k_element_4_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 4]);
+        sum_0 = _mm256_fmadd_ps(k_element_1, v_row_1, sum_0);
+        const __m256 k_element_4 = _mm256_set1_ps(K[k_maxIter_ll_0 + 4]);
 
-        // l = ll + 2
-        sum_0 = _mm256_fmadd_ps(k_element_2_0, v_row_2, sum_0);
-        const __m256 k_element_5_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 5]);
+        sum_0 = _mm256_fmadd_ps(k_element_2, v_row_2, sum_0);
+        const __m256 k_element_5 = _mm256_set1_ps(K[k_maxIter_ll_0 + 5]);
 
-        // l = ll + 3
-        sum_0 = _mm256_fmadd_ps(k_element_3_0, v_row_3, sum_0);
-        const __m256 k_element_6_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 6]);
+        sum_0 = _mm256_fmadd_ps(k_element_3, v_row_3, sum_0);
+        const __m256 k_element_6 = _mm256_set1_ps(K[k_maxIter_ll_0 + 6]);
 
         // l = ll + 4
-        sum_0 = _mm256_fmadd_ps(k_element_4_0, v_row_4, sum_0);
-        const __m256 k_element_7_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 7]);
+        sum_0 = _mm256_fmadd_ps(k_element_4, v_row_4, sum_0);
+        const __m256 k_element_7 = _mm256_set1_ps(K[k_maxIter_ll_0 + 7]);
 
         // l = ll + 5
-        sum_0 = _mm256_fmadd_ps(k_element_5_0, v_row_5, sum_0);
+        sum_0 = _mm256_fmadd_ps(k_element_5, v_row_5, sum_0);
 
         // l = ll + 6
-        sum_0 = _mm256_fmadd_ps(k_element_6_0, v_row_6, sum_0);
+        sum_0 = _mm256_fmadd_ps(k_element_6, v_row_6, sum_0);
 
         // l = ll + 7
-        sum_0 = _mm256_fmadd_ps(k_element_7_0, v_row_7, sum_0);
+        sum_0 = _mm256_fmadd_ps(k_element_7, v_row_7, sum_0);
 
         _mm256_storeu_ps(sums + (k % 8) * 8, sum_0);
     }
-
-
 }
 
 

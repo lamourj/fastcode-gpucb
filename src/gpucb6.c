@@ -12,7 +12,7 @@
 const char *tag[10] = {"leftovers"};
 
 void initialize(const int I, const int N) {
-    printf("Init gpucb5\n");
+    printf("Init gpucb6\n");
     if (N % 8 != 0) {
         printf("n is not divisible by 8 !!! \n");
     }
@@ -457,52 +457,14 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
     }
 }
 
-void mmm(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
-    const int ll8_0 = ll * 8;
-    const int ll8_1 = ll8_0 + 8;
-    const int ll8_2 = ll8_0 + 16;
-    const int ll8_3 = ll8_0 + 24;
-    const int ll8_4 = ll8_0 + 32;
-    const int ll8_5 = ll8_0 + 40;
-    const int ll8_6 = ll8_0 + 48;
-    const int ll8_7 = ll8_0 + 56;
-    const int jj8 = jj + 8;
-    const int kk8 = kk + 8;
-
-
-    for (int j = jj; j < jj8; j++) {
-        const int j_mod_8 = j % 8;
-        const int vi0 = j_mod_8 + ll8_0;
-        const int vi1 = j_mod_8 + ll8_1;
-        const int vi2 = j_mod_8 + ll8_2;
-        const int vi3 = j_mod_8 + ll8_3;
-        const int vi4 = j_mod_8 + ll8_4;
-        const int vi5 = j_mod_8 + ll8_5;
-        const int vi6 = j_mod_8 + ll8_6;
-        const int vi7 = j_mod_8 + ll8_7;
-
-
-        for (int k = kk; k < kk8; k++) {
-            const int kmaxIterll = k * maxIter + ll;
-
-            const float t0 = K[kmaxIterll] * v[vi0];
-            const float t1 = K[kmaxIterll + 1] * v[vi1];
-            const float t2 = K[kmaxIterll + 2] * v[vi2];
-            const float t3 = K[kmaxIterll + 3] * v[vi3];
-            const float t4 = K[kmaxIterll + 4] * v[vi4];
-            const float t5 = K[kmaxIterll + 5] * v[vi5];
-            const float t6 = K[kmaxIterll + 6] * v[vi6];
-            const float t7 = K[kmaxIterll + 7] * v[vi7];
-
-            const float t01 = t0 + t1;
-            const float t23 = t2 + t3;
-            const float t45 = t4 + t5;
-            const float t67 = t6 + t7;
-            const float t0123 = t01 + t23;
-            const float t4567 = t45 + t67;
-            const float sum = t0123 + t4567;
-
-            sums[(k % 8) * 8 + j_mod_8] += sum;
+void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
+    for (int j = jj; j < jj + 8; j++) {
+        for (int k = kk; k < kk + k_max; k++) {
+            float tmp_sum = 0;
+            for (int l = ll; l < ll + 8; ++l) {
+                tmp_sum += K[k * maxIter + l] * v[l * 8 + (j % 8)];
+            }
+            sums[(k % 8) * 8 + j % 8] += tmp_sum;
         }
     }
 }
@@ -652,11 +614,10 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
         sum_3 = _mm256_fmadd_ps(k_element_6_3, v_row_6, sum_3);
         sum_3 = _mm256_fmadd_ps(k_element_7_3, v_row_7, sum_3);
 
-
         _mm256_storeu_ps(sums + ((k + 3) % 8) * 8, sum_3);
+
     }
-    for (int k = 4 * ((kk + k_max) / 4) + 1; k + 1 < kk_k_max; k += 2) {
-        // k = 0
+    for (int k = 4 * ((kk + k_max) / 4); k + 1 < kk_k_max; k += 2) {
         __m256 sum_0 = _mm256_loadu_ps(sums + (k % 8) * 8);
         __m256 sum_1 = _mm256_loadu_ps(sums + ((k + 1) % 8) * 8);
         const int k_maxIter_ll_0 = k * maxIter + ll;
@@ -696,10 +657,8 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
         const __m256 k_element_5_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 5]);
         sum_0 = _mm256_fmadd_ps(k_element_5_0, v_row_5, sum_0);
 
-        // l = ll + 3
         const __m256 k_element_6_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 6]);
 
-        // l = ll + 4
         sum_0 = _mm256_fmadd_ps(k_element_6_0, v_row_6, sum_0);
         const __m256 k_element_7_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 7]);
         const __m256 k_element_7_1 = _mm256_set1_ps(K[k_maxIter_ll_1 + 7]);
@@ -712,50 +671,42 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
 
         _mm256_storeu_ps(sums + ((k + 1) % 8) * 8, sum_1);
     }
-    for (int k = 2 * ((kk + k_max) / 2) + 1; k < kk_k_max; k += 1) {
-        printf("kapuuttttt\n");
-        // k = 0
+    for (int k = 2 * ((kk + k_max) / 2); k < kk_k_max; k += 1) {
         const int k_maxIter_ll_0 = k * maxIter + ll;
 
         __m256 sum_0 = _mm256_loadu_ps(sums + (k % 8) * 8);
 
-        const __m256 k_element_0_0 = _mm256_set1_ps(K[k_maxIter_ll_0]);
-        const __m256 k_element_1_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 1]);
-        const __m256 k_element_2_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 2]);
+        const __m256 k_element_0 = _mm256_set1_ps(K[k_maxIter_ll_0]);
+        const __m256 k_element_1 = _mm256_set1_ps(K[k_maxIter_ll_0 + 1]);
+        const __m256 k_element_2 = _mm256_set1_ps(K[k_maxIter_ll_0 + 2]);
 
-        // l = ll
-        sum_0 = _mm256_fmadd_ps(k_element_0_0, v_row_0, sum_0);
-        const __m256 k_element_3_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 3]);
+        sum_0 = _mm256_fmadd_ps(k_element_0, v_row_0, sum_0);
+        const __m256 k_element_3 = _mm256_set1_ps(K[k_maxIter_ll_0 + 3]);
 
-        // l = ll + 1
-        sum_0 = _mm256_fmadd_ps(k_element_1_0, v_row_1, sum_0);
-        const __m256 k_element_4_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 4]);
+        sum_0 = _mm256_fmadd_ps(k_element_1, v_row_1, sum_0);
+        const __m256 k_element_4 = _mm256_set1_ps(K[k_maxIter_ll_0 + 4]);
 
-        // l = ll + 2
-        sum_0 = _mm256_fmadd_ps(k_element_2_0, v_row_2, sum_0);
-        const __m256 k_element_5_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 5]);
+        sum_0 = _mm256_fmadd_ps(k_element_2, v_row_2, sum_0);
+        const __m256 k_element_5 = _mm256_set1_ps(K[k_maxIter_ll_0 + 5]);
 
-        // l = ll + 3
-        sum_0 = _mm256_fmadd_ps(k_element_3_0, v_row_3, sum_0);
-        const __m256 k_element_6_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 6]);
+        sum_0 = _mm256_fmadd_ps(k_element_3, v_row_3, sum_0);
+        const __m256 k_element_6 = _mm256_set1_ps(K[k_maxIter_ll_0 + 6]);
 
         // l = ll + 4
-        sum_0 = _mm256_fmadd_ps(k_element_4_0, v_row_4, sum_0);
-        const __m256 k_element_7_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 7]);
+        sum_0 = _mm256_fmadd_ps(k_element_4, v_row_4, sum_0);
+        const __m256 k_element_7 = _mm256_set1_ps(K[k_maxIter_ll_0 + 7]);
 
         // l = ll + 5
-        sum_0 = _mm256_fmadd_ps(k_element_5_0, v_row_5, sum_0);
+        sum_0 = _mm256_fmadd_ps(k_element_5, v_row_5, sum_0);
 
         // l = ll + 6
-        sum_0 = _mm256_fmadd_ps(k_element_6_0, v_row_6, sum_0);
+        sum_0 = _mm256_fmadd_ps(k_element_6, v_row_6, sum_0);
 
         // l = ll + 7
-        sum_0 = _mm256_fmadd_ps(k_element_7_0, v_row_7, sum_0);
+        sum_0 = _mm256_fmadd_ps(k_element_7, v_row_7, sum_0);
 
         _mm256_storeu_ps(sums + (k % 8) * 8, sum_0);
     }
-
-
 }
 
 
@@ -834,7 +785,7 @@ void gp_regression_opt(float *X_grid,
                     if (ll == kk) {
                         solve_triangle(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, sums, K, v);
                     } else {
-                        mmm_vect(jj, kk, ll, maxIter,8, sums, K, v);
+                        mmm_vect(jj, kk, ll, maxIter, 8, sums, K, v);
                     }
                 }
             }
@@ -847,7 +798,7 @@ void gp_regression_opt(float *X_grid,
                 mmm_vect(jj, k_start, ll, maxIter, t_gp - k_start, sums, K, v);
             }
 
-            for (int k = k_start; k<t_gp; k++) {
+            for (int k = k_start; k < t_gp; k++) {
                 for (int l = 8 * (k / 8); l < k; ++l) {
                     for (int j = jj; j < jj + 8; j++) {
                         sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
