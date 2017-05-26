@@ -42,10 +42,11 @@ void validate(const int II, const int NN, double cycles_measured){
 		double abs = (diff < 0) ? -diff : diff;
 		tot_sigma_diff += abs;
 	}
-	if(tot_mu_diff > 0 || tot_sigma_diff > 0){
-		printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	if(tot_mu_diff > 1e-6 || tot_sigma_diff > 1e-6){
+		printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 		printf(" DOES NOT VALIDATE! difference mu: %lf, difference simga: %lf!\n", tot_mu_diff, tot_sigma_diff);
-		printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+        printf(" SPEEDUP: %lf                                  \n", (double) cycles_measured/ ((double)cycle_cnt / NUM_RUNS));
+		printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	} else{
 		printf("==============================================================\n");
 		printf("VALIDATED: SPEEDUP: %lf                                  \n", ((double)cycle_cnt / NUM_RUNS) / (double) cycles_measured);
