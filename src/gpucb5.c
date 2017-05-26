@@ -325,20 +325,6 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
     }
 }
 
-// Old version.
-void cholesky_solve(int d, float *LU, float *b, float *x) {
-    float y[d];
-    for (int i = 0; i < d; ++i) {
-        float sum = 0;
-        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
-        y[i] = (b[i] - sum) / LU[i * d + i];
-    }
-    for (int i = d - 1; i >= 0; --i) {
-        float sum = 0;
-        for (int k = i + 1; k < d; ++k)sum += LU[k * d + i] * x[k];
-        x[i] = (y[i] - sum) / LU[i * d + i];
-    }
-}
 
 
 void transpose(float *M, float *M_T, int d, int size) {
@@ -384,9 +370,9 @@ void gp_regression(float *X_grid,
     incremental_cholesky(K, L_T, t_gp - 1, t_gp, maxIter);
 
     // 3. Compute alpha
-    float x[t_gp];
-    float alpha[t_gp];
-    float v[t_gp];
+    float *x = (float *) malloc(t_gp * sizeof(float));
+    float *alpha = (float *) malloc(t_gp * sizeof(float));
+    float *v = (float *) malloc(t_gp * sizeof(float));
 
 
     cholesky_solve2(t_gp, maxIter, K, T, x, 1);
@@ -400,7 +386,8 @@ void gp_regression(float *X_grid,
             for (int j = jj; j < jj + 8; j++) {
                 float x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
                 float y_star = X_grid[2 * n * i + 2 * j + 1];
-                float k_star[t_gp];
+                // float k_star[t_gp];
+                float *k_star = (float *) malloc(t_gp * sizeof(float));
                 float f_star = 0;
                 float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
                 int x_, y_;
@@ -431,6 +418,7 @@ void gp_regression(float *X_grid,
                         variance -= v[k] * v[k];
                     }
                 }
+                free(k_star);
                 for (int k = 8 * (t_gp / 8); k < t_gp; k++) {
                     x_ = X[2 * k];
                     y_ = X[2 * k + 1];
@@ -465,6 +453,9 @@ void gp_regression(float *X_grid,
             }
         }
     }
+    free(x);
+    free(alpha);
+    free(v);
 }
 
 
@@ -502,9 +493,12 @@ void gp_regression_opt(float *X_grid,
     incremental_cholesky(K, L_T, t_gp - 1, t_gp, maxIter);
 
     // 3. Compute alpha
-    float x[t_gp];
-    float alpha[t_gp];
-    float v[t_gp];
+    // float x[t_gp];
+    // float alpha[t_gp];
+    // float v[t_gp];
+    float *x = (float *) malloc(t_gp * sizeof(float));
+    float *alpha = (float *) malloc(t_gp * sizeof(float));
+    float *v = (float *) malloc(t_gp * sizeof(float));
 
 
     cholesky_solve2(t_gp, maxIter, K, T, x, 1);
@@ -520,7 +514,8 @@ void gp_regression_opt(float *X_grid,
                 float y_star = X_grid[2 * n * i + 2 * j + 1];
                 sigma[i * n + j] = (*kernel)(&x_star, &y_star, &x_star, &y_star);
             }
-            float sums[8 * 8];
+            // float sums[8 * 8];
+            float *sums = (float *) malloc(8 * 8 * sizeof(float));
             for (int kk = 0; kk + 7 < t_gp; kk += 8) {
                 for (int z = 0; z < 8 * 8; z++) {
                     sums[z] = 0;
@@ -529,7 +524,8 @@ void gp_regression_opt(float *X_grid,
                     for (int j = jj; j < jj + 8; j++) {
                         float x_star = X_grid[2 * n * i + 2 * j];
                         float y_star = X_grid[2 * n * i + 2 * j + 1];
-                        float k_star[t_gp];
+                        // float k_star[t_gp];
+                        float *k_star = malloc(t_gp * sizeof(float));
                         int x_, y_;
                         float arg1x, arg1y;
 
@@ -552,9 +548,11 @@ void gp_regression_opt(float *X_grid,
                                 }
                             }
                         }
+                        free(k_star);
                     }
                 }
             }
+            free(sums);
             for (int z = 0; z < 8 * 8; z++) {
                 sums[z] = 0;
             }
@@ -595,4 +593,8 @@ void gp_regression_opt(float *X_grid,
             }
         }
     }
+
+    free(x);
+    free(alpha);
+    free(v);
 }
