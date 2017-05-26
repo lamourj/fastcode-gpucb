@@ -483,15 +483,52 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
     }
 }
 
-void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
-    for (int j = jj; j < jj + 8; j++) {
+void mmm(int jj, int kk, int ll, int maxIter, float *sums, float *K, float *v) {
+    const int ll8_0 = ll * 8;
+    const int ll8_1 = ll8_0 + 8;
+    const int ll8_2 = ll8_0 + 16;
+    const int ll8_3 = ll8_0 + 24;
+    const int ll8_4 = ll8_0 + 32;
+    const int ll8_5 = ll8_0 + 40;
+    const int ll8_6 = ll8_0 + 48;
+    const int ll8_7 = ll8_0 + 56;
+    const int jj8 = jj + 8;
+    const int kk8 = kk + 8;
+
+
+    for (int j = jj; j < jj8; j++) {
         const int j_mod_8 = j % 8;
-        for (int k = kk; k < kk + k_max; k++) {
-            float tmp_sum = 0;
-            for (int l = ll; l < ll + 8; ++l) {
-                tmp_sum += K[k * maxIter + l] * v[l * 8 + j_mod_8];
-            }
-            sums[(k % 8) * 8 + j % 8] += tmp_sum;
+        const int vi0 = j_mod_8 + ll8_0;
+        const int vi1 = j_mod_8 + ll8_1;
+        const int vi2 = j_mod_8 + ll8_2;
+        const int vi3 = j_mod_8 + ll8_3;
+        const int vi4 = j_mod_8 + ll8_4;
+        const int vi5 = j_mod_8 + ll8_5;
+        const int vi6 = j_mod_8 + ll8_6;
+        const int vi7 = j_mod_8 + ll8_7;
+
+
+        for (int k = kk; k < kk8; k++) {
+            const int kmaxIterll = k * maxIter + ll;
+
+            const float t0 = K[kmaxIterll] * v[vi0];
+            const float t1 = K[kmaxIterll + 1] * v[vi1];
+            const float t2 = K[kmaxIterll + 2] * v[vi2];
+            const float t3 = K[kmaxIterll + 3] * v[vi3];
+            const float t4 = K[kmaxIterll + 4] * v[vi4];
+            const float t5 = K[kmaxIterll + 5] * v[vi5];
+            const float t6 = K[kmaxIterll + 6] * v[vi6];
+            const float t7 = K[kmaxIterll + 7] * v[vi7];
+
+            const float t01 = t0 + t1;
+            const float t23 = t2 + t3;
+            const float t45 = t4 + t5;
+            const float t67 = t6 + t7;
+            const float t0123 = t01 + t23;
+            const float t4567 = t45 + t67;
+            const float sum = t0123 + t4567;
+
+            sums[(k % 8) * 8 + j_mod_8] += sum;
         }
     }
 }
@@ -561,7 +598,7 @@ void gp_regression_opt(float *X_grid,
                     if (ll == kk) {
                         solve_triangle(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, sums, K, v);
                     } else {
-                        mmm(jj, kk, ll, maxIter, 8, sums, K, v);
+                        mmm(jj, kk, ll, maxIter, sums, K, v);
                     }
                 }
             }
