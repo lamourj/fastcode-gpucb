@@ -58,8 +58,6 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower);
 
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower);
 
-void cholesky_solve(int d, float *LU, float *b, float *x);
-
 void transpose(float *M, float *M_T, int d, int size);
 
 void gp_regression(float *X_grid,
@@ -75,16 +73,16 @@ void gp_regression(float *X_grid,
                    int n);
 
 void gp_regression_opt(float *X_grid,
-                   float *K,
-                   float *L_T,
-                   int *X,
-                   float *T,
-                   int t,
-                   int maxIter,
-                   float   (*kernel)(float *, float *, float *, float *),
-                   float *mu,
-                   float *sigma,
-                   int n);
+                       float *K,
+                       float *L_T,
+                       int *X,
+                       float *T,
+                       int t,
+                       int maxIter,
+                       float   (*kernel)(float *, float *, float *, float *),
+                       float *mu,
+                       float *sigma,
+                       int n);
 
 
 #endif //FASTCODE_GPUCB_GPUCB5_H

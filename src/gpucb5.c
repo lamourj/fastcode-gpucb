@@ -326,7 +326,6 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
 }
 
 
-
 void transpose(float *M, float *M_T, int d, int size) {
     for (int i = 0; i < d; ++i) {
         for (int j = 0; j < d; ++j) {
@@ -525,7 +524,7 @@ void gp_regression_opt(float *X_grid,
                         float x_star = X_grid[2 * n * i + 2 * j];
                         float y_star = X_grid[2 * n * i + 2 * j + 1];
                         // float k_star[t_gp];
-                        float *k_star = malloc(t_gp * sizeof(float));
+                        float *k_star = (float *) malloc(t_gp * sizeof(float));
                         int x_, y_;
                         float arg1x, arg1y;
 
@@ -552,7 +551,7 @@ void gp_regression_opt(float *X_grid,
                     }
                 }
             }
-            free(sums);
+
             for (int z = 0; z < 8 * 8; z++) {
                 sums[z] = 0;
             }
@@ -586,6 +585,7 @@ void gp_regression_opt(float *X_grid,
                     sigma[i * n + j] -= v[k] * v[k];
                 }
             }
+            free(sums);
             for (int j = jj; j < jj + 8; j++) {
                 if (sigma[i * n + j] < 0) {
                     sigma[i * n + j] = 0.0;
