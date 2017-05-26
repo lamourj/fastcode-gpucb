@@ -10,16 +10,16 @@
 
 
 // ONLY CHANGE THIS
-#include "../../src/gpucb5.h"
+#include "../../src/gpucb.h"
 const int N_MIN = 200; // min meshgrid size
 const int N_MAX = 200; // max meshgrid size. MUST BE REACHABLE WITH STEP
-const int N_STEP = 100; // 
-const int ITER_MIN = 5; // min number of iterations
-const int ITER_MAX = 10; // max number of iterations. MUST BE REACHABLE WITH STEP
+const int N_STEP = 8; // 
+const int ITER_MIN = 50; // min number of iterations
+const int ITER_MAX = 200; // max number of iterations. MUST BE REACHABLE WITH STEP
 const int ITER_STEP = 5; // min number of iterations
-const int NUM_RUNS = 1;
+const int NUM_RUNS = 3;
 const int COMPARE_TO_BASELINE = 1; // 0 or 1
-
+const int TIME_ITERATIONS = 1; // 0: time different N, 1: time different iterations
 // DO NOT CHANGE THE FOLLOWING LINES
 
 void validate(const int II, const int NN, double cycles_measured){
@@ -48,7 +48,7 @@ void validate(const int II, const int NN, double cycles_measured){
 		printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	} else{
 		printf("==============================================================\n");
-		printf("VALIDATED: SPEEDUP: %lf                                  \n", (double) cycles_measured/ ((double)cycle_cnt / NUM_RUNS));
+		printf("VALIDATED: SPEEDUP: %lf                                  \n", ((double)cycle_cnt / NUM_RUNS) / (double) cycles_measured);
 		printf("==============================================================\n");
 	}
 	clean();
@@ -59,15 +59,19 @@ int main() {
 	if(!(N_STEP % 8 == 0) || !(N_MIN % 8 == 0)) {
         	printf("n or step is not divisible by 8 !!! \n");
 	}
+	if(!(ITER_MIN % ITER_STEP == 0) || !(ITER_MAX % ITER_STEP == 0))
+		printf("iter min and iter max must both be dividable by step");
+	if(!(N_MIN % N_STEP == 0) || !(N_MAX % N_STEP == 0))
+		printf("N min and N max must both be dividable by step");
 	int j, n, i;
 	uint64_t cycle_cnt;
 	
-	if( N_MIN != N_MAX){
+	if( TIME_ITERATIONS==0){
 		i = ITER_MIN;
 		FILE *fp;
 		char filename[50] = "";
 		printf("the tag is:");
-		printf("%s",*tag);
+		printf("%s\n",*tag);
 		strcpy(filename, "results/");
 		strcat(filename, *tag);
 		strcat(filename, "_N");
@@ -93,13 +97,13 @@ int main() {
 	}
 	
 	printf("itermin: %d\n", ITER_MIN);
-	if(ITER_MIN != ITER_MAX){
+	if(TIME_ITERATIONS==1){
 		printf("Comes here\n");
 		n = N_MIN;
 		FILE *fp;
 		char filename[50];
 		printf("the tag is:");
-		printf("%s",*tag);
+		printf("%s\n",*tag);
 		strcpy(filename, "results/");
 		strcat(filename, *tag);
 		strcat(filename, "_I");
@@ -125,9 +129,9 @@ int main() {
 	}
 
 	if(COMPARE_TO_BASELINE==1){
-		if(ITER_MIN != ITER_MAX)
+		if(TIME_ITERATIONS)
 			validate(ITER_MAX, N_MIN, (double) cycle_cnt / NUM_RUNS);
-		if(N_MIN != N_MAX)
+		if(TIME_ITERATIONS==0)
 			validate(ITER_MIN, N_MAX, (double) cycle_cnt / NUM_RUNS);
 	}
 
