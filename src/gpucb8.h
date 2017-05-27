@@ -66,8 +66,9 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
 void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
                     int maxIter, float *sums, float *K, float *v);
 
-void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                         int maxIter, int k_max, float *sums, float *K, float *v);
+void
+solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
+                    int maxIter, int k_max, float *sums, float *K, float *v);
 
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower);
 

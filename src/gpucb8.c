@@ -86,7 +86,7 @@ void learn(float *X_grid,
     sampled[maxI * n + maxJ] = true;
     T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
     gp_regression_opt(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma, sampled, beta,
-                      n, maxIJ); // updating mu and sigma for every x in X_grid
+                          n, maxIJ); // updating mu and sigma for every x in X_grid
 }
 
 float kernel2(float *x1, float *y1, float *x2, float *y2) {
@@ -332,19 +332,18 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
 
 void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
                          int n, int maxIter, int k_max, float *sums, float *K, float *v) {
-    __m256 mu_vector = _mm256_loadu_ps(mu + i * n + jj);
-    __m256 sigma_vector = _mm256_loadu_ps(sigma + i * n + jj);
     const __m256 xy_star0 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * jj);
     const __m256 xy_star1 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * (jj + 4));
-    __m256 xstar_h1 = _mm256_permute2f128_ps(xy_star0, xy_star1, 32);
-    __m256 xstar_h2 = _mm256_permute2f128_ps(xy_star0, xy_star1, 49);
+    const __m256 xstar_h1 = _mm256_permute2f128_ps(xy_star0, xy_star1, 32);
+    __m256 mu_vector = _mm256_loadu_ps(mu + i * n + jj);
+    const __m256 xstar_h2 = _mm256_permute2f128_ps(xy_star0, xy_star1, 49);
+    __m256 sigma_vector = _mm256_loadu_ps(sigma + i * n + jj);
     const __m256 xstar_vector = _mm256_shuffle_ps(xstar_h1, xstar_h2, 136);
+    const __m256 minus_two_vector = _mm256_set1_ps(-2.f);
     const __m256 ystar_vector = _mm256_shuffle_ps(xstar_h1, xstar_h2, 221);
-
 
     int x_, y_;
     float arg1x, arg1y;
-
 
     for (int k = kk; k < kk + k_max; k++) {
         __m256 sum_vector = _mm256_loadu_ps(sums + 8 * (k % 8));
@@ -354,38 +353,32 @@ void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *
         arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
         const __m256 arg1x_vector = _mm256_set1_ps(arg1x);
         const __m256 arg1y_vector = _mm256_set1_ps(arg1y);
-        const __m256 minus_two_vector = _mm256_set1_ps(-2.f);
+        const __m256 exponentx_0 = _mm256_sub_ps(arg1x_vector, xstar_vector);
+        const __m256 exponentx = _mm256_mul_ps(exponentx_0, exponentx_0);
+        const __m256 exponenty_0 = _mm256_sub_ps(arg1y_vector, ystar_vector);
+        const __m256 exponenty = _mm256_mul_ps(exponenty_0, exponenty_0);
+        const __m256 exponentxy = _mm256_add_ps(exponentx, exponenty);
+        const __m256 exponent = _mm256_div_ps(exponentxy, minus_two_vector);
+        const __m256 kstar_vector = exp256_ps(exponent);
 
-        __m256 exponentx = _mm256_sub_ps(arg1x_vector, xstar_vector);
-        exponentx = _mm256_mul_ps(exponentx, exponentx);
-        __m256 exponenty = _mm256_sub_ps(arg1y_vector, ystar_vector);
-        exponenty = _mm256_mul_ps(exponenty, exponenty);
-        __m256 exponent = _mm256_div_ps(_mm256_add_ps(exponentx, exponenty), minus_two_vector);
-        __m256 kstar_vector = exp256_ps(exponent);
-
-        __m256 K_vector;
-        __m256 v_vector;
+        __m256 v_vector_0;
         for (int l = ll; l < k; ++l) {
-            K_vector = _mm256_set1_ps(K[k * maxIter + l]);
-            v_vector = _mm256_loadu_ps(v + l * 8);
-            sum_vector = _mm256_fmadd_ps(K_vector, v_vector, sum_vector);
+            const __m256 K_vector = _mm256_set1_ps(K[k * maxIter + l]);
+            v_vector_0 = _mm256_loadu_ps(v + l * 8);
+            sum_vector = _mm256_fmadd_ps(K_vector, v_vector_0, sum_vector);
         }
 
         _mm256_storeu_ps(sums + (k % 8) * 8, sum_vector);
 
-        __m256 K_diag = _mm256_set1_ps(K[k * maxIter + k]);
-        v_vector = _mm256_sub_ps(kstar_vector, sum_vector);
-        v_vector = _mm256_div_ps(v_vector, K_diag);
-        _mm256_storeu_ps(v + k * 8, v_vector);
+        const __m256 K_diag = _mm256_set1_ps(K[k * maxIter + k]);
+        const __m256 v_vector_1 = _mm256_sub_ps(kstar_vector, sum_vector);
+        const __m256 v_vector_2 = _mm256_div_ps(v_vector_1, K_diag);
+        _mm256_storeu_ps(v + k * 8, v_vector_2);
 
         mu_vector = _mm256_fmadd_ps(kstar_vector, _mm256_set1_ps(alpha[k]), mu_vector);
-
-        v_vector = _mm256_loadu_ps(v + k * 8 + (jj % 8));
-
-        sigma_vector = _mm256_fnmadd_ps(v_vector, v_vector, sigma_vector);
+        sigma_vector = _mm256_fnmadd_ps(v_vector_2, v_vector_2, sigma_vector);
 
     }
-
     _mm256_storeu_ps(mu + i * n + jj, mu_vector);
     _mm256_storeu_ps(sigma + i * n + jj, sigma_vector);
 }
@@ -616,25 +609,34 @@ void gp_regression_opt(float *X_grid,
                        float beta,
                        int n,
                        int *maxIJ) {
-    int t_gp = t + 1;
+    const int t_gp = t + 1;
 
     // extend the K matrix
-    int i = t_gp - 1;
+    const int t_gp_min_one = t_gp - 1;
     for (int j = 0; j < t_gp; j++) {
-        int x1 = X[2 * i];
-        int y1 = X[2 * i + 1];
-        int x2 = X[2 * j];
-        int y2 = X[2 * j + 1];
+        const int x1 = X[2 * t_gp_min_one];
+        const int y1 = X[2 * t_gp_min_one + 1];
+        const int x2 = X[2 * j];
+        const int y2 = X[2 * j + 1];
 
-        float _x1, _y1, _x2, _y2;
-        _x1 = X_grid[x1 * 2 * n + 2 * y1];
-        _y1 = X_grid[x1 * 2 * n + 2 * y1 + 1];
-        _x2 = X_grid[x2 * 2 * n + 2 * y2];
-        _y2 = X_grid[x2 * 2 * n + 2 * y2 + 1];
-        float k_value = expf(-((_x1 - _x2) * (_x1 - _x2) + (_y1 - _y2) * (_y1 - _y2)) / 2.f);
-        K[i * maxIter + j] = k_value;
-        if (i == j) {
-            K[i * maxIter + j] += 0.5;
+        const float _x1 = X_grid[x1 * 2 * n + 2 * y1];
+        const float _y1 = X_grid[x1 * 2 * n + 2 * y1 + 1];
+        const float _x2 = X_grid[x2 * 2 * n + 2 * y2];
+        const float _y2 = X_grid[x2 * 2 * n + 2 * y2 + 1];
+
+        const float _x1x2 = _x1 - _x2;
+        const float _y1y2 = _y1 - _y2;
+        const float _x1x2_squared = _x1x2 * _x1x2;
+        const float _y1y2_squared = _y1y2 * _y1y2;
+        const float numerator = _x1x2_squared + _y1y2_squared;
+        const float neg_numerator = -numerator;
+        const float operand = neg_numerator / 2.f;
+        const float k_value = expf(operand);
+
+        // const float k_value = expf(-((_x1 - _x2) * (_x1 - _x2) + (_y1 - _y2) * (_y1 - _y2)) / 2.f);
+        K[t_gp_min_one * maxIter + j] = k_value;
+        if (t_gp_min_one == j) {
+            K[t_gp_min_one * maxIter + j] += 0.5;
         }
     }
 
@@ -655,15 +657,22 @@ void gp_regression_opt(float *X_grid,
 
     float maxValue = -FLT_MAX;
     int maxI = 0, maxJ = 0;
+    const float sqrt_beta = sqrtf(beta);
 
-    float *sums = (float *) malloc(8 * 8 * sizeof(float));
-    for (i = 0; i < n; i++) { // for all points in X_grid ([i])
+    const int t_gp_8 = 8 * t_gp;
+    const int k_start = 8 * (t_gp / 8);
+    const int k_start_minus_7 = k_start - 7;
+
+    float *sums = (float *) malloc(64 * sizeof(float));
+    for (int i = 0; i < n; i++) { // for all points in X_grid ([i])
+        const int in = i * n;
         for (int jj = 0; jj < n; jj += 8) { // for all points in X_grid ([i][j])
             for (int j = jj; j < jj + 8; j++) {
-                mu[i * n + j] = 0;
-                sigma[i * n + j] = 1.0;
+                const int inj = in + j;
+                mu[inj] = 0;
+                sigma[inj] = 1.0;
             }
-            for (int zz = 0; zz < 8 * t_gp; ++zz) {
+            for (int zz = 0; zz < t_gp_8; ++zz) {
                 v[zz] = 0;
             }
             for (int kk = 0; kk + 7 < t_gp; kk += 8) {
@@ -678,47 +687,27 @@ void gp_regression_opt(float *X_grid,
                     }
                 }
             }
-            for (int z = 0; z < 8 * 8; z++) {
+            for (int z = 0; z < 64; z++) {
                 sums[z] = 0;
             }
-            int k_start = 8 * (t_gp / 8);
 
-
-            for (int ll = 0; ll + 7 < k_start; ll += 8) {
+            for (int ll = 0; ll < k_start_minus_7; ll += 8) {
                 mmm_vect(jj, k_start, ll, maxIter, t_gp - k_start, sums, K, v);
             }
 
             solve_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, k_start, k_start, n, maxIter, t_gp - k_start, sums,
                                 K, v);
-
-//            for (int k = k_start; k < t_gp; k++) {
-//                for (int l = 8 * (k / 8); l < k; ++l) {
-//                    for (int j = jj; j < jj + 8; j++) {
-//                        sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
-//                    }
-//                }
-//                int x_, y_;
-//                float arg1x, arg1y;
-//                x_ = X[2 * k];
-//                y_ = X[2 * k + 1];
-//                arg1x = X_grid[x_ * 2 * n + 2 * y_];
-//                arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
-//                for (int j = jj; j < jj + 8; j++) {
-//                    float x_star = X_grid[2 * n * i + 2 * j];
-//                    float y_star = X_grid[2 * n * i + 2 * j + 1];
-//                    float k_star = expf(
-//                            -((arg1x - x_star) * (arg1x - x_star) + (arg1y - y_star) * (arg1y - y_star)) / 2.f);
-//                    v[k * 8 + (j % 8)] = (k_star - sums[(k % 8) * 8 + j % 8]) / K[k * maxIter + k];
-//                    mu[i * n + j] += k_star * alpha[k];
-//                    sigma[i * n + j] -= v[k * 8 + (j % 8)] * v[k * 8 + (j % 8)];
-//                }
-//            }
-            for (int j = jj; j < jj + 8; j++) {
-                if (sigma[i * n + j] < 0) {
-                    sigma[i * n + j] = 0.0;
+            const int jj_plus_8 = jj + 8;
+            for (int j = jj; j < jj_plus_8; j++) {
+                const int inj = in + j;
+                if (sigma[inj] < 0) {
+                    sigma[inj] = 0.0;
                 }
-                float currentValue = mu[i * n + j] + sqrtf(beta) * sigma[i * n + j];
-                if (!sampled[i * n + j] && currentValue > maxValue) {
+                const float current_mu = mu[inj];
+                const float current_sigma = sigma[inj];
+                const float sigma_beta = current_sigma * sqrt_beta;
+                const float currentValue = current_mu + sigma_beta;
+                if (!sampled[inj] && currentValue > maxValue) {
                     maxValue = currentValue;
                     maxI = i;
                     maxJ = j;
