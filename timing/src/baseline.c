@@ -32,7 +32,8 @@ void initialize_bl(const int I, const int N) {
         sigma_bl[i] = 0.5;
     }
 
-    if (T_bl == 0 || X_bl == 0 || X_grid_bl == 0 || sampled_bl == 0 || mu_bl == 0 || sigma_bl == 0 || K_bl == 0 || L_bl == 0) {
+    if (T_bl == 0 || X_bl == 0 || X_grid_bl == 0 || sampled_bl == 0 || mu_bl == 0 || sigma_bl == 0 || K_bl == 0 ||
+        L_bl == 0) {
         printf("ERROR: Out of memory\n");
     }
 
@@ -57,18 +58,18 @@ float function_bl(float x, float y) {
 }
 
 void learn_bl(float *X_grid,
-                    float *K,
-                    float *L_T,
-                    bool *sampled,
-                    int *X,
-                    float *T,
-                    int t,
-                    int maxIter,
-                    float *mu,
-                    float *sigma,
-                    float(*kernel)(float *, float *, float *, float *),
-                    const float beta,
-                    int n) {
+              float *K,
+              float *L_T,
+              bool *sampled,
+              int *X,
+              float *T,
+              int t,
+              int maxIter,
+              float *mu,
+              float *sigma,
+              float(*kernel)(float *, float *, float *, float *),
+              const float beta,
+              int n) {
 
     bool debug = true;
     int maxI = 0;
@@ -91,7 +92,7 @@ void learn_bl(float *X_grid,
     sampled[maxI * n + maxJ] = true;
     T[t] = function_bl(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
     gp_regression_bl(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
-                           n); // updating mu and sigma for every x in X_grid
+                     n); // updating mu and sigma for every x in X_grid
 }
 
 float kernel2_bl(float *x1, float *y1, float *x2, float *y2) {
@@ -233,16 +234,16 @@ void transpose_bl(float *M, float *M_T, int d, int size) {
 
 
 void gp_regression_bl(float *X_grid,
-                            float *K,
-                            float *L_T,
-                            int *X,
-                            float *T,
-                            int t,
-                            int maxIter,
-                            float   (*kernel)(float *, float *, float *, float *),
-                            float *mu,
-                            float *sigma,
-                            int n) {
+                      float *K,
+                      float *L_T,
+                      int *X,
+                      float *T,
+                      int t,
+                      int maxIter,
+                      float   (*kernel)(float *, float *, float *, float *),
+                      float *mu,
+                      float *sigma,
+                      int n) {
     int t_gp = t + 1;
 
     // extend the K matrix
