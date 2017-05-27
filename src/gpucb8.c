@@ -330,65 +330,20 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
 }
 
 
-void
-solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                    int maxIter, int k_max, float *sums, float *K, float *v) {
+void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
+                         int n, int maxIter, int k_max, float *sums, float *K, float *v) {
     __m256 mu_vector = _mm256_loadu_ps(mu + i * n + jj);
     __m256 sigma_vector = _mm256_loadu_ps(sigma + i * n + jj);
-//    float a_vector[8] = {1, 2, 3, 4, 5, 6, 7};
-//    float b_vector[8] = {9, 10, 11, 12, 13, 14, 15};
-    const __m256 xy_star0 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 *
-                                                                 jj);//_mm256_loadu_ps( X_grid+2 * n * i + 2 * jj); // x_star0,y_star0,x_star1,y_star1,etc._mm256_setr_ps(1,2,3,4,5,6,7, 8)
-    const __m256 xy_star1 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * (jj +
-                                                                      4)); // x_star4,y_star4,x_star5,y_star5,etc. // _mm256_setr_ps(9, 10, 11, 12, 13, 14, 15, 16);
+    const __m256 xy_star0 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * jj);
+    const __m256 xy_star1 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * (jj + 4));
     __m256 xstar_h1 = _mm256_permute2f128_ps(xy_star0, xy_star1, 32);
     __m256 xstar_h2 = _mm256_permute2f128_ps(xy_star0, xy_star1, 49);
     const __m256 xstar_vector = _mm256_shuffle_ps(xstar_h1, xstar_h2, 136);
     const __m256 ystar_vector = _mm256_shuffle_ps(xstar_h1, xstar_h2, 221);
 
 
-
-    //const __m256 y_star = _mm256_loadu_ps(X_grid+2 * n * i + 2 * (jj+0) + 1);
-//    float x_star0 = X_grid[2 * n * i + 2 * (jj + 0) + 0];
-//    float x_star1 = X_grid[2 * n * i + 2 * (jj + 1) + 0];
-//    float x_star2 = X_grid[2 * n * i + 2 * (jj + 2) + 0];
-//    float x_star3 = X_grid[2 * n * i + 2 * (jj + 3) + 0];
-//    float x_star4 = X_grid[2 * n * i + 2 * (jj + 4) + 0];
-//    float x_star5 = X_grid[2 * n * i + 2 * (jj + 5) + 0];
-//    float x_star6 = X_grid[2 * n * i + 2 * (jj + 6) + 0];
-//    float x_star7 = X_grid[2 * n * i + 2 * (jj + 7) + 0];
-//
-//    float y_star0 = X_grid[2 * n * i + 2 * (jj + 0) + 1];
-//    float y_star1 = X_grid[2 * n * i + 2 * (jj + 1) + 1];
-//    float y_star2 = X_grid[2 * n * i + 2 * (jj + 2) + 1];
-//    float y_star3 = X_grid[2 * n * i + 2 * (jj + 3) + 1];
-//    float y_star4 = X_grid[2 * n * i + 2 * (jj + 4) + 1];
-//    float y_star5 = X_grid[2 * n * i + 2 * (jj + 5) + 1];
-//    float y_star6 = X_grid[2 * n * i + 2 * (jj + 6) + 1];
-//    float y_star7 = X_grid[2 * n * i + 2 * (jj + 7) + 1];
-
-
     int x_, y_;
     float arg1x, arg1y;
-
-//    float mu0 = mu[i * n + jj + 0];
-//    float mu1 = mu[i * n + jj + 1];
-//    float mu2 = mu[i * n + jj + 2];
-//    float mu3 = mu[i * n + jj + 3];
-//    float mu4 = mu[i * n + jj + 4];
-//    float mu5 = mu[i * n + jj + 5];
-//    float mu6 = mu[i * n + jj + 6];
-//    float mu7 = mu[i * n + jj + 7];
-//    float sigma0 = sigma[i * n + jj + 0];
-//    float sigma1 = sigma[i * n + jj + 1];
-//    float sigma2 = sigma[i * n + jj + 2];
-//    float sigma3 = sigma[i * n + jj + 3];
-//    float sigma4 = sigma[i * n + jj + 4];
-//    float sigma5 = sigma[i * n + jj + 5];
-//    float sigma6 = sigma[i * n + jj + 6];
-//    float sigma7 = sigma[i * n + jj + 7];
-
-
 
 
     for (int k = kk; k < kk + k_max; k++) {
@@ -406,145 +361,33 @@ solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha
         __m256 exponenty = _mm256_sub_ps(arg1y_vector, ystar_vector);
         exponenty = _mm256_mul_ps(exponenty, exponenty);
         __m256 exponent = _mm256_div_ps(_mm256_add_ps(exponentx, exponenty), minus_two_vector);
-        //__m256 kstar_vector = _mm256_setr_ps(expf(norm[0]), expf(norm[1]),expf(norm[2]),expf(norm[3]),expf(norm[4]),expf(norm[5]),expf(norm[6]),expf(norm[7]));//_mm256_getexp_ps(norm);
         __m256 kstar_vector = exp256_ps(exponent);
-//        printf("kstar vector\n");
-//        for (int z = 0; z < 8; z++) {
-//            printf("kstar %d: %lf   ", z, kstar_vector[z]);
-//        }
-
-//        float kstar0 = expf(
-//                -((arg1x - x_star0) * (arg1x - x_star0) + (arg1y - y_star0) * (arg1y - y_star0)) / 2.f);
-//        float kstar1 = expf(
-//                -((arg1x - x_star1) * (arg1x - x_star1) + (arg1y - y_star1) * (arg1y - y_star1)) / 2.f);
-//        float kstar2 = expf(
-//                -((arg1x - x_star2) * (arg1x - x_star2) + (arg1y - y_star2) * (arg1y - y_star2)) / 2.f);
-//        float kstar3 = expf(
-//                -((arg1x - x_star3) * (arg1x - x_star3) + (arg1y - y_star3) * (arg1y - y_star3)) / 2.f);
-//        float kstar4 = expf(
-//                -((arg1x - x_star4) * (arg1x - x_star4) + (arg1y - y_star4) * (arg1y - y_star4)) / 2.f);
-//        float kstar5 = expf(
-//                -((arg1x - x_star5) * (arg1x - x_star5) + (arg1y - y_star5) * (arg1y - y_star5)) / 2.f);
-//        float kstar6 = expf(
-//                -((arg1x - x_star6) * (arg1x - x_star6) + (arg1y - y_star6) * (arg1y - y_star6)) / 2.f);
-//        float kstar7 = expf(
-//                -((arg1x - x_star7) * (arg1x - x_star7) + (arg1y - y_star7) * (arg1y - y_star7)) / 2.f);
-
-//        printf("\n");
-//        printf("kstar 0: %lf    ", kstar0);
-//        printf("kstar 1: %lf    ", kstar1);
-//        printf("kstar 2: %lf    ", kstar2);
-//        printf("kstar 3: %lf    ", kstar3);
-//        printf("kstar 4: %lf    ", kstar4);
-//        printf("kstar 5: %lf    ", kstar5);
-//        printf("kstar 6: %lf    ", kstar6);
-//        printf("kstar 7: %lf    ", kstar7);
-//
 
         __m256 K_vector;
         __m256 v_vector;
         for (int l = ll; l < k; ++l) {
             K_vector = _mm256_set1_ps(K[k * maxIter + l]);
             v_vector = _mm256_loadu_ps(v + l * 8);
-//            sums[(k % 8) * 8 + (jj + 0) % 8] += K[k * maxIter + l] * v[l * 8 + ((jj + 0) % 8)];
-//            sums[(k % 8) * 8 + (jj + 1) % 8] += K[k * maxIter + l] * v[l * 8 + ((jj + 1) % 8)];
-//            sums[(k % 8) * 8 + (jj + 2) % 8] += K[k * maxIter + l] * v[l * 8 + ((jj + 2) % 8)];
-//            sums[(k % 8) * 8 + (jj + 3) % 8] += K[k * maxIter + l] * v[l * 8 + ((jj + 3) % 8)];
-//            sums[(k % 8) * 8 + (jj + 4) % 8] += K[k * maxIter + l] * v[l * 8 + ((jj + 4) % 8)];
-//            sums[(k % 8) * 8 + (jj + 5) % 8] += K[k * maxIter + l] * v[l * 8 + ((jj + 5) % 8)];
-//            sums[(k % 8) * 8 + (jj + 6) % 8] += K[k * maxIter + l] * v[l * 8 + ((jj + 6) % 8)];
-//            sums[(k % 8) * 8 + (jj + 7) % 8] += K[k * maxIter + l] * v[l * 8 + ((jj + 7) % 8)];
             sum_vector = _mm256_fmadd_ps(K_vector, v_vector, sum_vector);
         }
 
-         _mm256_storeu_ps(sums + (k % 8) * 8, sum_vector);
+        _mm256_storeu_ps(sums + (k % 8) * 8, sum_vector);
 
         __m256 K_diag = _mm256_set1_ps(K[k * maxIter + k]);
         v_vector = _mm256_sub_ps(kstar_vector, sum_vector);
         v_vector = _mm256_div_ps(v_vector, K_diag);
-//        v[k * 8 + ((jj + 0) % 8)] = (kstar0 - sums[(k % 8) * 8 + (jj + 0) % 8]) / K[k * maxIter + k];
-//        v[k * 8 + ((jj + 1) % 8)] = (kstar1 - sums[(k % 8) * 8 + (jj + 1) % 8]) / K[k * maxIter + k];
-//        v[k * 8 + ((jj + 2) % 8)] = (kstar2 - sums[(k % 8) * 8 + (jj + 2) % 8]) / K[k * maxIter + k];
-//        v[k * 8 + ((jj + 3) % 8)] = (kstar3 - sums[(k % 8) * 8 + (jj + 3) % 8]) / K[k * maxIter + k];
-//        v[k * 8 + ((jj + 4) % 8)] = (kstar4 - sums[(k % 8) * 8 + (jj + 4) % 8]) / K[k * maxIter + k];
-//        v[k * 8 + ((jj + 5) % 8)] = (kstar5 - sums[(k % 8) * 8 + (jj + 5) % 8]) / K[k * maxIter + k];
-//        v[k * 8 + ((jj + 6) % 8)] = (kstar6 - sums[(k % 8) * 8 + (jj + 6) % 8]) / K[k * maxIter + k];
-//        v[k * 8 + ((jj + 7) % 8)] = (kstar7 - sums[(k % 8) * 8 + (jj + 7) % 8]) / K[k * maxIter + k];
         _mm256_storeu_ps(v + k * 8, v_vector);
 
-
-
         mu_vector = _mm256_fmadd_ps(kstar_vector, _mm256_set1_ps(alpha[k]), mu_vector);
-//        mu0 += kstar0 * alpha[k];
-//        mu1 += kstar1 * alpha[k];
-//        mu2 += kstar2 * alpha[k];
-//        mu3 += kstar3 * alpha[k];
-//        mu4 += kstar4 * alpha[k];
-//        mu5 += kstar5 * alpha[k];
-//        mu6 += kstar6 * alpha[k];
-//        mu7 += kstar7 * alpha[k];
 
         v_vector = _mm256_loadu_ps(v + k * 8 + (jj % 8));
 
-
-//        printf("\n");
-//
-//        printf("sigma0: %lf, sigma1: %lf, sigma2: %lf, sigma3: %lf, sigma4: %lf, sigma5: %lf,sigma6: %lf, sigma7: %lf \n",
-//               v[k * 8 + ((jj + 0) % 8)], v[k * 8 + ((jj + 1) % 8)], v[k * 8 + ((jj + 2) % 8)], v[k * 8 + ((jj + 3) % 8)],
-//               v[k * 8 + ((jj + 4) % 8)], v[k * 8 + ((jj + 5) % 8)], v[k * 8 + ((jj + 6) % 8)], v[k * 8 + ((jj + 6) % 8)]);
-//
-//        printf("sigma0: %lf, sigma1: %lf, sigma2: %lf, sigma3: %lf, sigma4: %lf, sigma5: %lf,sigma6: %lf, sigma7: %lf\n",
-//               v_vector[0], v_vector[1],
-//               v_vector[2], v_vector[3], v_vector[4], v_vector[5], v_vector[6], v_vector[7]);
-
         sigma_vector = _mm256_fnmadd_ps(v_vector, v_vector, sigma_vector);
-//        sigma0 -= v[k * 8 + ((jj + 0) % 8)] * v[k * 8 + ((jj + 0) % 8)];
-//        sigma1 -= v[k * 8 + ((jj + 1) % 8)] * v[k * 8 + ((jj + 1) % 8)];
-//        sigma2 -= v[k * 8 + ((jj + 2) % 8)] * v[k * 8 + ((jj + 2) % 8)];
-//        sigma3 -= v[k * 8 + ((jj + 3) % 8)] * v[k * 8 + ((jj + 3) % 8)];
-//        sigma4 -= v[k * 8 + ((jj + 4) % 8)] * v[k * 8 + ((jj + 4) % 8)];
-//        sigma5 -= v[k * 8 + ((jj + 5) % 8)] * v[k * 8 + ((jj + 5) % 8)];
-//        sigma6 -= v[k * 8 + ((jj + 6) % 8)] * v[k * 8 + ((jj + 6) % 8)];
-//        sigma7 -= v[k * 8 + ((jj + 7) % 8)] * v[k * 8 + ((jj + 7) % 8)];
-
-
-
 
     }
 
-//
-//    printf("\n");
-//
-//    printf("sigma0: %lf, sigma1: %lf, sigma2: %lf, sigma3: %lf, sigma4: %lf, sigma5: %lf,sigma6: %lf, sigma7: %lf \n",
-//           sigma0, sigma1, sigma2, sigma3, sigma4, sigma5, sigma6, sigma7);
-//
-//    printf("sigma0: %lf, sigma1: %lf, sigma2: %lf, sigma3: %lf, sigma4: %lf, sigma5: %lf,sigma6: %lf, sigma7: %lf\n",
-//           sigma_vector[0], sigma_vector[1],
-//           sigma_vector[2], sigma_vector[3], sigma_vector[4], sigma_vector[5], sigma_vector[6], sigma_vector[7]);
-//
-//
-
-
-
     _mm256_storeu_ps(mu + i * n + jj, mu_vector);
-//    mu[i * n + (jj + 0)] = mu0;
-//    mu[i * n + (jj + 1)] = mu1;
-//    mu[i * n + (jj + 2)] = mu2;
-//    mu[i * n + (jj + 3)] = mu3;
-//    mu[i * n + (jj + 4)] = mu4;
-//    mu[i * n + (jj + 5)] = mu5;
-//    mu[i * n + (jj + 6)] = mu6;
-//    mu[i * n + (jj + 7)] = mu7;
-
     _mm256_storeu_ps(sigma + i * n + jj, sigma_vector);
-//    sigma[i * n + (jj + 0)] = sigma0;
-//    sigma[i * n + (jj + 1)] = sigma1;
-//    sigma[i * n + (jj + 2)] = sigma2;
-//    sigma[i * n + (jj + 3)] = sigma3;
-//    sigma[i * n + (jj + 4)] = sigma4;
-//    sigma[i * n + (jj + 5)] = sigma5;
-//    sigma[i * n + (jj + 6)] = sigma6;
-//    sigma[i * n + (jj + 7)] = sigma7;
 }
 
 
@@ -811,7 +654,7 @@ void gp_regression_opt(float *X_grid,
 
 
     float maxValue = -FLT_MAX;
-    int maxI, maxJ;
+    int maxI = 0, maxJ = 0;
 
     float *sums = (float *) malloc(8 * 8 * sizeof(float));
     for (i = 0; i < n; i++) { // for all points in X_grid ([i])
@@ -845,7 +688,8 @@ void gp_regression_opt(float *X_grid,
                 mmm_vect(jj, k_start, ll, maxIter, t_gp - k_start, sums, K, v);
             }
 
-            solve_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, k_start, k_start, n, maxIter, t_gp - k_start, sums, K, v);
+            solve_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, k_start, k_start, n, maxIter, t_gp - k_start, sums,
+                                K, v);
 
 //            for (int k = k_start; k < t_gp; k++) {
 //                for (int l = 8 * (k / 8); l < k; ++l) {
