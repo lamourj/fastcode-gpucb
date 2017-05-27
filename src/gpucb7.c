@@ -78,23 +78,8 @@ void learn(float *X_grid,
            int n,
            int *maxIJ) {
 
-    int maxI = 0;
-    int maxJ = 0;
-    float max = mu[0] + sqrtf(beta) * sigma[0];
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            float currentValue = mu[i * n + j] + sqrtf(beta) * sigma[i * n + j];
-
-            if (!sampled[i * n + j] && (currentValue > max)) {
-                max = currentValue;
-                maxI = i;
-                maxJ = j;
-            }
-        }
-    }
-    printf("maxIJ: %d %d ; maxI,maxJ: %d %d \n", maxIJ[0], maxIJ[1], maxI, maxJ);
-
-
+    int maxI = maxIJ[0];
+    int maxJ = maxIJ[1];
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
@@ -540,33 +525,19 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
         sum_0 = _mm256_fmadd_ps(k_element_3, v_row_3, sum_0);
         const __m256 k_element_6 = _mm256_set1_ps(K[k_maxIter_ll_0 + 6]);
 
-        // l = ll + 4
         sum_0 = _mm256_fmadd_ps(k_element_4, v_row_4, sum_0);
         const __m256 k_element_7 = _mm256_set1_ps(K[k_maxIter_ll_0 + 7]);
 
-        // l = ll + 5
         sum_0 = _mm256_fmadd_ps(k_element_5, v_row_5, sum_0);
 
-        // l = ll + 6
         sum_0 = _mm256_fmadd_ps(k_element_6, v_row_6, sum_0);
 
-        // l = ll + 7
         sum_0 = _mm256_fmadd_ps(k_element_7, v_row_7, sum_0);
 
         _mm256_storeu_ps(sums + (k % 8) * 8, sum_0);
     }
 }
 
-
-void rect_mmm(int jj, int ll, int maxIter, int k_start, int t_gp, float *sums, float *K, float *v) {
-    for (int k = k_start; k < t_gp; k++) {
-        for (int j = jj; j < jj + 8; j++) {
-            for (int l = ll; l < ll + 8; ++l) {
-                sums[(k % 8) * 8 + j % 8] += K[k * maxIter + l] * v[l * 8 + (j % 8)];
-            }
-        }
-    }
-}
 
 void gp_regression_opt(float *X_grid,
                        float *K,
@@ -680,7 +651,7 @@ void gp_regression_opt(float *X_grid,
                     sigma[i * n + j] = 0.0;
                 }
                 float currentValue = mu[i * n + j] + sqrtf(beta) * sigma[i * n + j];
-                if (currentValue > maxValue) {
+                if (!sampled[i * n + j] && currentValue > maxValue) {
                     maxValue = currentValue;
                     maxI = i;
                     maxJ = j;

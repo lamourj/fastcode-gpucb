@@ -63,8 +63,6 @@ void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, 
 
 void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
 
-void rect_mmm(int jj, int ll, int maxIter, int k_start, int t_gp, float *sums, float *K, float *v);
-
 void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
                     int maxIter, float *sums, float *K, float *v);
 
