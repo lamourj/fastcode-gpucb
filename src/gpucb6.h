@@ -95,4 +95,4 @@ void gp_regression_opt(float *X_grid,
                        int n);
 
 
-#endif //FASTCODE_GPUCB_GPUCB5_H
+#endif //FASTCODE_GPUCB_GPUCB6_H

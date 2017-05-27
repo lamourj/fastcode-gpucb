@@ -28,7 +28,7 @@ void initialize(const int I, const int N) {
     sigma_ = (float *) malloc(N * N * sizeof(float));
     K_ = (float *) malloc(I * I * sizeof(float));
     L_ = (float *) malloc(I * I * sizeof(float));
-    maxIJ_ = malloc(2 * sizeof(int));
+    maxIJ_ = (int *) malloc(2 * sizeof(int));
     maxIJ_[0] = 0;
     maxIJ_[1] = 0;
 
@@ -39,7 +39,8 @@ void initialize(const int I, const int N) {
         sigma_[i] = 0.5;
     }
 
-    if (T_ == 0 || X_ == 0 || X_grid_ == 0 || sampled_ == 0 || mu_ == 0 || sigma_ == 0 || K_ == 0 || L_ == 0) {
+    if (T_ == 0 || X_ == 0 || X_grid_ == 0 || sampled_ == 0 || mu_ == 0 || sigma_ == 0 || K_ == 0 || L_ == 0 ||
+        maxIJ_ == 0) {
         printf("ERROR: Out of memory\n");
     }
 
@@ -109,7 +110,7 @@ void clean() {
     free(sigma_);
     free(K_);
     free(L_);
-
+    free(maxIJ_);
 }
 
 /*
@@ -590,8 +591,9 @@ void gp_regression_opt(float *X_grid,
     // 4-6. For all points in grid, compute k*, mu, sigma
 
 
-    float maxValue = FLT_MIN;
-    int maxI, maxJ;
+    float maxValue = -FLT_MAX;
+    int maxI = 0;
+    int maxJ = 0;
 
     float *sums = (float *) malloc(8 * 8 * sizeof(float));
     for (i = 0; i < n; i++) { // for all points in X_grid ([i])
@@ -623,7 +625,6 @@ void gp_regression_opt(float *X_grid,
             for (int ll = 0; ll + 7 < k_start; ll += 8) {
                 mmm_vect(jj, k_start, ll, maxIter, t_gp - k_start, sums, K, v);
             }
-
             for (int k = k_start; k < t_gp; k++) {
                 for (int l = 8 * (k / 8); l < k; ++l) {
                     for (int j = jj; j < jj + 8; j++) {
