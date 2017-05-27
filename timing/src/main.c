@@ -31,21 +31,19 @@ void validate(const int II, const int NN, double cycles_measured){
 	double tot_mu_diff = 0.0;
 	double tot_sigma_diff = 0.0;
 
-	for(int ii=0; ii<II;ii++){
+	for(int ii=0; ii<NN*NN;ii++){
 		double diff = mu_bl[ii] - mu_[ii];
 		double abs = (diff < 0) ? -diff : diff;
 		tot_mu_diff += abs;
-	}
-
-	for(int ii=0; ii<II;ii++){
-		double diff = sigma_bl[ii] - sigma_[ii];
-		double abs = (diff < 0) ? -diff : diff;
+		diff = sigma_bl[ii] - sigma_[ii];
+		abs = (diff < 0) ? -diff : diff;
 		tot_sigma_diff += abs;
 	}
+
 	if(tot_mu_diff > 1e-6 || tot_sigma_diff > 1e-6){
 		printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 		printf(" DOES NOT VALIDATE! difference mu: %lf, difference simga: %lf!\n", tot_mu_diff, tot_sigma_diff);
-		printf(" SPEEDUP: %lf                                  \n", (double) cycles_measured/ ((double)cycle_cnt / NUM_RUNS));
+        printf(" SPEEDUP: %lf                                  \n", ((double)cycle_cnt / NUM_RUNS) / (double) cycles_measured);
 		printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	} else{
 		printf("==============================================================\n");
@@ -58,7 +56,7 @@ void validate(const int II, const int NN, double cycles_measured){
 
 int main() {
 	if(!(N_STEP % 8 == 0) || !(N_MIN % 8 == 0)) {
-		printf("n or step is not divisible by 8 !!! \n");
+        	printf("n or step is not divisible by 8 !!! \n");
 	}
 	if(!(ITER_MIN % ITER_STEP == 0) || !(ITER_MAX % ITER_STEP == 0))
 		printf("iter min and iter max must both be dividable by step");
@@ -66,7 +64,7 @@ int main() {
 		printf("N min and N max must both be dividable by step");
 	int j, n, i;
 	uint64_t cycle_cnt;
-
+	
 	if( TIME_ITERATIONS==0){
 		i = ITER_MIN;
 		FILE *fp;
@@ -78,15 +76,15 @@ int main() {
 		strcat(filename, "_N");
 		strcat(filename, ".csv");
 
-		fp = fopen(filename, "w+");
-		fprintf(fp, "n\ti\tcycles\n");
+	   	fp = fopen(filename, "w+");
+	   	fprintf(fp, "n\ti\tcycles\n");
 		perf_init();
 		for(n=N_MIN; n<=N_MAX; n+=N_STEP){
 			initialize(i, n);
 			// warm up the cache
 			for (j = 0; j < NUM_RUNS; j += 1) run();
 			clean();
-
+	
 			initialize(i,n);
 			cycles_count_start();
 			for (j = 0; j < NUM_RUNS; j += 1) run();
@@ -96,7 +94,7 @@ int main() {
 		}
 		fclose(fp);
 	}
-
+	
 	printf("itermin: %d\n", ITER_MIN);
 	if(TIME_ITERATIONS==1){
 		printf("Comes here\n");
@@ -110,15 +108,15 @@ int main() {
 		strcat(filename, "_I");
 		strcat(filename, ".csv");
 
-		fp = fopen(filename, "w+");
-		fprintf(fp, "n\ti\tcycles\n");
+	   	fp = fopen(filename, "w+");
+	   	fprintf(fp, "n\ti\tcycles\n");
 		perf_init();
 		for(i=ITER_MIN; i<=ITER_MAX; i+=ITER_STEP){
 			initialize(i, n);
-			// warm up the cache
-			for (j = 0; j < NUM_RUNS; j += 1) run();
+		    	// warm up the cache
+		    	for (j = 0; j < NUM_RUNS; j += 1) run();
 			clean();
-
+	
 			initialize(i,n);
 			cycles_count_start();
 			for (j = 0; j < NUM_RUNS; j += 1) run();
@@ -138,9 +136,10 @@ int main() {
 
 	perf_done();
 
+	
 
-
-
-	return 0;
+	    	
+    return 0;
 }
+
 
