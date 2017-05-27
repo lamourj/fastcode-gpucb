@@ -4,11 +4,11 @@ project(fastcode-gpucb)
 set(CMAKE_C_STANDARD 99)
 
 set(SOURCE_FILES
-        src/gpucb5.h
-        src/gpucb5.c
         src/main.c
         src/main.h
-        )
+        src/gpucb8.c
+        src/gpucb8.h
+        src/avx_mathfun.h)
 add_executable(fastcode-gpucb ${SOURCE_FILES})
 
 ## Compiler flags.
