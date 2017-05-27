@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <float.h>
 
 const char *tag[30] = {"baseline-comp-chol"};
 
@@ -52,7 +53,7 @@ void learn_baseline(float *X_grid, bool *sampled, int *X, float *T, int t, float
     bool debug = true;
     int maxI = 0;
     int maxJ = 0;
-    float max = mu[0] + sqrtf(beta) * sigma[0];
+    float max = -FLT_MAX;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             float currentValue = mu[i * n + j] + sqrtf(beta) * sigma[i * n + j];

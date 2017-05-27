@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "immintrin.h"
+#include <float.h>
 
 const char *tag[10] = {"gpcub6"};
 
@@ -79,7 +80,7 @@ void learn(float *X_grid,
 
     int maxI = 0;
     int maxJ = 0;
-    float max = mu[0] + sqrtf(beta) * sigma[0];
+    float max = -FLT_MAX;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             float currentValue = mu[i * n + j] + sqrtf(beta) * sigma[i * n + j];

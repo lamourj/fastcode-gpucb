@@ -810,7 +810,7 @@ void gp_regression_opt(float *X_grid,
     // 4-6. For all points in grid, compute k*, mu, sigma
 
 
-    float maxValue = FLT_MIN;
+    float maxValue = -FLT_MAX;
     int maxI, maxJ;
 
     float *sums = (float *) malloc(8 * 8 * sizeof(float));

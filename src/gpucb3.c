@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <immintrin.h>
+#include <float.h>
 
 float function(float x, float y) {
     // float t = sin(x) + cos(y);
@@ -14,18 +15,18 @@ float function(float x, float y) {
 }
 
 void learn(float *X_grid,
-                    float *K,
-                    float *L_T,
-                    bool *sampled,
-                    int *X,
-                    float *T,
-                    int t,
-                    int maxIter,
-                    float *mu,
-                    float *sigma,
-                    float(*kernel)(float *, float *, float *, float *),
-                    float beta,
-                    int n) {
+           float *K,
+           float *L_T,
+           bool *sampled,
+           int *X,
+           float *T,
+           int t,
+           int maxIter,
+           float *mu,
+           float *sigma,
+           float(*kernel)(float *, float *, float *, float *),
+           float beta,
+           int n) {
 
     __m256d maxIs = _mm256_setzero_pd();
     __m256d maxJs = _mm256_setzero_pd();
@@ -43,7 +44,8 @@ void learn(float *X_grid,
             const __m256d sigmas = _mm256_loadu_pd(sigma + inj);
             const __m256d betaSigmas = _mm256_mul_pd(sqrtfBeta, sigmas);
             const __m256d currentValues = _mm256_add_pd(mus, betaSigmas);
-            const __m256d sampledValues = _mm256_set_pd(sampled[inj + 3], sampled[inj + 2], sampled[inj + 1], sampled[inj]);
+            const __m256d sampledValues = _mm256_set_pd(sampled[inj + 3], sampled[inj + 2], sampled[inj + 1],
+                                                        sampled[inj]);
             const __m256d currentIndicesI = _mm256_set1_pd(i);
             const __m256d currentIndicesJ = _mm256_set_pd(j + 3, j + 2, j + 1, j);
 
@@ -78,13 +80,13 @@ void learn(float *X_grid,
     const int maxInmaxJ2 = 2 * maxInmaxJ;
     T[t] = function(X_grid[maxInmaxJ2], X_grid[maxInmaxJ2 + 1]);
     gp_regression(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
-                           n); // updating mu and sigma for every x in X_grid
+                  n); // updating mu and sigma for every x in X_grid
 }
 
 float kernel2(float *x1, float *y1, float *x2, float *y2) {
     // RBF kernel
     float sigma = 1;
-    
+
     return expf(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
 }
 
@@ -181,7 +183,6 @@ int gpucb(int maxIter, int n, float grid_min, float grid_inc) {
 }
 
 
-
 float function_baseline(float x, float y) {
     // float t = sin(x) + cos(y);
     float t = -powf(x, 2) - powf(y, 2);
@@ -213,7 +214,7 @@ void learn_baseline(float *X_grid,
     bool debug = true;
     int maxI = 0;
     int maxJ = 0;
-    float max = mu[0] + sqrtf(beta) * sigma[0];
+    float max = -FLT_MAX;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             float currentValue = mu[i * n + j] + sqrtf(beta) * sigma[i * n + j];
@@ -230,7 +231,8 @@ void learn_baseline(float *X_grid,
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
     T[t] = function_baseline(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression_baseline(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma, n); // updating mu and sigma for every x in X_grid
+    gp_regression_baseline(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
+                           n); // updating mu and sigma for every x in X_grid
 }
 
 float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
@@ -271,14 +273,14 @@ void gpucb_initialized_baseline(float *X_grid,
 int gpucb_baseline(int maxIter, int n, float grid_min, float grid_inc) {
 
     // Allocations
-    float       mu[n * n];
-    float       sigma[n * n];
-    float       X_grid[2 * n * n];
-    float       K[maxIter * maxIter];
-    float       L_T[maxIter * maxIter];
-    float       T[maxIter];
-    int          X[2 * maxIter];
-    bool         sampled[n * n];
+    float mu[n * n];
+    float sigma[n * n];
+    float X_grid[2 * n * n];
+    float K[maxIter * maxIter];
+    float L_T[maxIter * maxIter];
+    float T[maxIter];
+    int X[2 * maxIter];
+    bool sampled[n * n];
     const float beta = 100;
 
     // Initializations
@@ -379,14 +381,14 @@ void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int siz
                 A[size * i + j] -= A[size * i + k] * A[size * j + k];
             }
             A[size * i + j] /= A[size * j + j];
-            A_T[size*j + i] = A[size * i + j];
+            A_T[size * j + i] = A[size * i + j];
         }
         // Update the diagonal entry.
         for (int k = 0; k < i; ++k) {
             A[size * i + i] -= A[size * i + k] * A[size * i + k];
         }
         A[size * i + i] = sqrtff(A[size * i + i]);
-        A_T[size*i + i] = A[size * i + i];
+        A_T[size * i + i] = A[size * i + i];
     }
 
 }
@@ -472,7 +474,7 @@ void gp_regression_baseline(float *X_grid,
         K[i * maxIter + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
                                        &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
         // K is symmetric, shouldn't go through all entries when optimizing
-        if(i==j){
+        if (i == j) {
             K[i * maxIter + j] += 0.5;
         }
     }
@@ -527,7 +529,7 @@ void gp_regression_baseline(float *X_grid,
             }
 
 
-            if(variance < 0){
+            if (variance < 0) {
                 variance = 0.0;
             }
             sigma[i * n + j] = variance;
