@@ -1,7 +1,7 @@
-// Optimizing leftover code.
+// Find maximum value (point to sample in next it.) while doing GP-regression update.
 
-#ifndef FASTCODE_GPUCB_GPUCB6_H
-#define FASTCODE_GPUCB_GPUCB6_H
+#ifndef FASTCODE_GPUCB_GPUCB7_H
+#define FASTCODE_GPUCB_GPUCB7_H
 
 #include <stdbool.h>
 #include <immintrin.h>
@@ -19,6 +19,7 @@ float *mu_;
 float *sigma_;
 float *K_;
 float *L_;
+int *maxIJ_;
 
 int I_;
 int N_;
@@ -37,7 +38,8 @@ void learn(float *X_grid,
            float *sigma,
            float(*kernel)(float *, float *, float *, float *),
            const float beta,
-           int n);
+           int n,
+           int *maxIJ);
 
 float kernel2(float *x1, float *y1, float *x2, float *y2);
 
@@ -70,18 +72,6 @@ void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int low
 
 void transpose(float *M, float *M_T, int d, int size);
 
-void gp_regression(float *X_grid,
-                   float *K,
-                   float *L_T,
-                   int *X,
-                   float *T,
-                   int t,
-                   int maxIter,
-                   float   (*kernel)(float *, float *, float *, float *),
-                   float *mu,
-                   float *sigma,
-                   int n);
-
 void gp_regression_opt(float *X_grid,
                        float *K,
                        float *L_T,
@@ -92,7 +82,10 @@ void gp_regression_opt(float *X_grid,
                        float   (*kernel)(float *, float *, float *, float *),
                        float *mu,
                        float *sigma,
-                       int n);
+                       bool *sampled,
+                       float beta,
+                       int n,
+                       int *maxIJ);
 
 
-#endif //FASTCODE_GPUCB_GPUCB5_H
+#endif //FASTCODE_GPUCB_GPUCB7_H

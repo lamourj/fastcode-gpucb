@@ -1,18 +1,15 @@
-// Inline the cholesky solve
+// Find maximum value (point to sample in next it.) while doing GP-regression update.
 
 
-#include "gpucb6.h"
+#include "gpucb7.h"
 #include <stdio.h>
 #include <math.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include "immintrin.h"
+#include <float.h>
 
-const char *tag[10] = {"gpcub6"};
+const char *tag[10] = {"gpcub7"};
 
 void initialize(const int I, const int N) {
-    printf("Init gpucb6\n");
+    printf("Init gpucb7\n");
     if (N % 8 != 0) {
         printf("n is not divisible by 8 !!! \n");
     }
@@ -31,6 +28,9 @@ void initialize(const int I, const int N) {
     sigma_ = (float *) malloc(N * N * sizeof(float));
     K_ = (float *) malloc(I * I * sizeof(float));
     L_ = (float *) malloc(I * I * sizeof(float));
+    maxIJ_ = malloc(2 * sizeof(int));
+    maxIJ_[0] = 0;
+    maxIJ_[1] = 0;
 
     // Initialize matrices
     for (int i = 0; i < N * N; i++) {
@@ -75,7 +75,8 @@ void learn(float *X_grid,
            float *sigma,
            float(*kernel)(float *, float *, float *, float *),
            const float beta,
-           int n) {
+           int n,
+           int *maxIJ) {
 
     int maxI = 0;
     int maxJ = 0;
@@ -91,13 +92,15 @@ void learn(float *X_grid,
             }
         }
     }
+    printf("maxIJ: %d %d ; maxI,maxJ: %d %d \n", maxIJ[0], maxIJ[1], maxI, maxJ);
+
 
     X[2 * t] = maxI;
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
     T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression_opt(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma,
-                      n); // updating mu and sigma for every x in X_grid
+    gp_regression_opt(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma, sampled, beta,
+                      n, maxIJ); // updating mu and sigma for every x in X_grid
 }
 
 float kernel2(float *x1, float *y1, float *x2, float *y2) {
@@ -108,7 +111,7 @@ float kernel2(float *x1, float *y1, float *x2, float *y2) {
 
 void run() {
     for (int t = 0; t < I_; t++) {
-        learn(X_grid_, K_, L_, sampled_, X_, T_, t, I_, mu_, sigma_, kernel2, BETA_, N_);
+        learn(X_grid_, K_, L_, sampled_, X_, T_, t, I_, mu_, sigma_, kernel2, BETA_, N_, maxIJ_);
     }
 }
 
@@ -307,123 +310,6 @@ void transpose(float *M, float *M_T, int d, int size) {
             M_T[j * size + i] = M[i * size + j];
         }
     }
-}
-
-
-void gp_regression(float *X_grid,
-                   float *K,
-                   float *L_T,
-                   int *X,
-                   float *T,
-                   int t,
-                   int maxIter,
-                   float   (*kernel)(float *, float *, float *, float *),
-                   float *mu,
-                   float *sigma,
-                   int n) {
-    int t_gp = t + 1;
-
-    // extend the K matrix
-    int i = t_gp - 1;
-    for (int j = 0; j < t_gp; j++) {
-        int x1 = X[2 * i];
-        int y1 = X[2 * i + 1];
-        int x2 = X[2 * j];
-        int y2 = X[2 * j + 1];
-
-        K[i * maxIter + j] = (*kernel)(&X_grid[x1 * 2 * n + 2 * y1], &X_grid[x1 * 2 * n + 2 * y1 + 1],
-                                       &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
-        // K is symmetric, shouldn't go through all entries when optimizing
-        if (i == j) {
-            K[i * maxIter + j] += 0.5;
-        }
-    }
-
-
-    // 2. Cholesky
-    incremental_cholesky(K, L_T, t_gp - 1, t_gp, maxIter);
-
-    // 3. Compute alpha
-    float *x = (float *) malloc(t_gp * sizeof(float));
-    float *alpha = (float *) malloc(t_gp * sizeof(float));
-    float *v = (float *) malloc(t_gp * sizeof(float));
-
-
-    cholesky_solve2(t_gp, maxIter, K, T, x, 1);
-    cholesky_solve2(t_gp, maxIter, L_T, x, alpha, 0);
-
-    // 4-6. For all points in grid, compute k*, mu, sigma
-
-    float *k_star = (float *) malloc(t_gp * sizeof(float));
-    for (i = 0; i < n; i++) { // for all points in X_grid ([i])
-        for (int jj = 0; jj < n; jj += 8) { // for all points in X_grid ([i][j])
-            for (int j = jj; j < jj + 8; j++) {
-                float x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
-                float y_star = X_grid[2 * n * i + 2 * j + 1];
-                float f_star = 0;
-                float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
-                int x_, y_;
-                float arg1x, arg1y, sum;
-
-                for (int kk = 0; kk + 7 < t_gp; kk += 8) {
-                    for (int k = kk; k < kk + 8; k++) {
-                        x_ = X[2 * k];
-                        y_ = X[2 * k + 1];
-                        arg1x = X_grid[x_ * 2 * n + 2 * y_];
-                        arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
-                        k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
-
-                        sum = 0.0;
-                        for (int ll = 0; ll + 7 < k; ll += 8) {
-                            for (int l = ll; l < ll + 8; ++l) {
-                                sum += K[k * maxIter + l] * v[l];
-                            }
-                        }
-                        for (int l = 8 * (k / 8); l < k; ++l) {
-                            sum += K[k * maxIter + l] * v[l];
-                        }
-                        v[k] = (k_star[k] - sum) / K[k * maxIter + k];
-                        f_star += k_star[k] * alpha[k];
-                        variance -= v[k] * v[k];
-                    }
-                }
-                for (int k = 8 * (t_gp / 8); k < t_gp; k++) {
-                    x_ = X[2 * k];
-                    y_ = X[2 * k + 1];
-                    arg1x = X_grid[x_ * 2 * n + 2 * y_];
-                    arg1y = X_grid[x_ * 2 * n + 2 * y_ + 1];
-                    k_star[k] = (*kernel)(&arg1x, &arg1y, &x_star, &y_star);
-
-                    sum = 0.0;
-                    for (int ll = 0; ll + 7 < k; ll += 8) {
-                        for (int l = ll; l < ll + 8; ++l) {
-                            sum += K[k * maxIter + l] * v[l];
-                        }
-                    }
-                    for (int l = 8 * (k / 8); l < k; ++l) {
-                        sum += K[k * maxIter + l] * v[l];
-                    }
-
-                    v[k] = (k_star[k] - sum) / K[k * maxIter + k];
-                    f_star += k_star[k] * alpha[k];
-                    variance -= v[k] * v[k];
-                }
-
-
-                mu[i * n + j] = f_star;
-
-                if (variance < 0) {
-                    variance = 0.0;
-                }
-                sigma[i * n + j] = variance;
-            }
-        }
-    }
-
-    free(k_star);
-    free(x);
-    free(alpha);
-    free(v);
 }
 
 
@@ -692,7 +578,10 @@ void gp_regression_opt(float *X_grid,
                        float   (*kernel)(float *, float *, float *, float *),
                        float *mu,
                        float *sigma,
-                       int n) {
+                       bool *sampled,
+                       float beta,
+                       int n,
+                       int *maxIJ) {
     int t_gp = t + 1;
 
     // extend the K matrix
@@ -728,6 +617,10 @@ void gp_regression_opt(float *X_grid,
     cholesky_solve2(t_gp, maxIter, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
+
+
+    float maxValue = FLT_MIN;
+    int maxI, maxJ;
 
     float *sums = (float *) malloc(8 * 8 * sizeof(float));
     for (i = 0; i < n; i++) { // for all points in X_grid ([i])
@@ -786,9 +679,17 @@ void gp_regression_opt(float *X_grid,
                 if (sigma[i * n + j] < 0) {
                     sigma[i * n + j] = 0.0;
                 }
+                float currentValue = mu[i * n + j] + sqrtf(beta) * sigma[i * n + j];
+                if (currentValue > maxValue) {
+                    maxValue = currentValue;
+                    maxI = i;
+                    maxJ = j;
+                }
             }
         }
     }
+    maxIJ[0] = maxI;
+    maxIJ[1] = maxJ;
     free(sums);
     free(x);
     free(alpha);
