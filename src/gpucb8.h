@@ -36,12 +36,9 @@ void learn(float *X_grid,
            int maxIter,
            float *mu,
            float *sigma,
-           float(*kernel)(float *, float *, float *, float *),
            const float beta,
            int n,
            int *maxIJ);
-
-float kernel2(float *x1, float *y1, float *x2, float *y2);
 
 void initialize_meshgrid(float *X_grid, int n, float min, float inc);
 
@@ -50,10 +47,6 @@ void initialize(const int, const int);
 void run();
 
 void clean();
-
-int gpucb(int maxIter, int n, float grid_min, float grid_inc);
-
-void cholesky(float *A, int n, int size);
 
 void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size);
 
@@ -68,15 +61,13 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
 
 void
 solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                    int maxIter, int k_max, float *sums, float *K, float *v);
+                    int maxIter, int k_max, float *sums, float *K, float *v, float* k_star);
 
 void
 solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
-                          int n, int maxIter, int k_max, float *sums, float *K, float *v);
+                          int n, int maxIter, int k_max, float *sums, float *K, float *v, float* k_star);
 
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower);
-
-void transpose(float *M, float *M_T, int d, int size);
 
 void gp_regression_opt(float *X_grid,
                        float *K,
@@ -85,7 +76,6 @@ void gp_regression_opt(float *X_grid,
                        float *T,
                        int t,
                        int maxIter,
-                       float   (*kernel)(float *, float *, float *, float *),
                        float *mu,
                        float *sigma,
                        bool *sampled,

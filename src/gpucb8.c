@@ -58,8 +58,11 @@ void initialize_meshgrid(float *X_grid, int n, float min, float inc) {
 }
 
 float function(float x, float y) {
-    // float t = sin(x) + cos(y);
-    float t = -powf(x, 2) - powf(y, 2);
+    const float xx = x * x;
+    const float yy = y * y;
+    const float xx_n = -xx;
+    const float yy_n = -yy;
+    const float t = xx_n + yy_n;
     printf("(C code) Sampled: [%.2f %.2f] result %f \n", x, y, t);
     return t;
 }
@@ -74,7 +77,6 @@ void learn(float *X_grid,
            int maxIter,
            float *mu,
            float *sigma,
-           float(*kernel)(float *, float *, float *, float *),
            const float beta,
            int n,
            int *maxIJ) {
@@ -85,19 +87,13 @@ void learn(float *X_grid,
     X[2 * t + 1] = maxJ;
     sampled[maxI * n + maxJ] = true;
     T[t] = function(X_grid[maxI * 2 * n + 2 * maxJ], X_grid[maxI * 2 * n + 2 * maxJ + 1]);
-    gp_regression_opt(X_grid, K, L_T, X, T, t, maxIter, kernel, mu, sigma, sampled, beta,
+    gp_regression_opt(X_grid, K, L_T, X, T, t, maxIter, mu, sigma, sampled, beta,
                       n, maxIJ); // updating mu and sigma for every x in X_grid
-}
-
-float kernel2(float *x1, float *y1, float *x2, float *y2) {
-    // RBF kernel
-    float sigma = 1;
-    return expf(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
 }
 
 void run() {
     for (int t = 0; t < I_; t++) {
-        learn(X_grid_, K_, L_, sampled_, X_, T_, t, I_, mu_, sigma_, kernel2, BETA_, N_, maxIJ_);
+        learn(X_grid_, K_, L_, sampled_, X_, T_, t, I_, mu_, sigma_, BETA_, N_, maxIJ_);
     }
 }
 
@@ -110,7 +106,7 @@ void clean() {
     free(sigma_);
     free(K_);
     free(L_);
-
+    free(maxIJ_);
 }
 
 /*
@@ -174,131 +170,6 @@ void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower) 
     }
 }
 
-void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower) {
-    // TODO: Unroll over i ? Blocking (LU and x accessed several times)
-
-    if (lower == 1) {
-        float sum0 = 0;
-        for (int i = 0; i < d; ++i) {
-            float sum1 = 0;
-            float sum2 = 0;
-            float sum3 = 0;
-
-            for (int k = 0; k + 3 < i; k += 4) {
-                /*printf("k: %d\n", k);
-                printf("k: %d\n", k+1);
-                printf("k: %d\n", k+2);
-                printf("k: %d\n", k+3);*/
-                const int isizek = i * size + k;
-                const float lu0 = LU[isizek];
-                const float xk0 = x[k];
-
-                const float lu1 = LU[isizek + 1];
-                const float xk1 = x[k + 1];
-
-                const float lu2 = LU[isizek + 2];
-                const float xk2 = x[k + 2];
-
-                const float lu3 = LU[isizek + 3];
-                const float xk3 = x[k + 3];
-
-                const float term0 = lu0 * xk0;
-                const float term1 = lu1 * xk1;
-                const float term2 = lu2 * xk2;
-                const float term3 = lu3 * xk3;
-
-                sum0 += term0;
-                sum1 += term1;
-                sum2 += term2;
-                sum3 += term3;
-            }
-            const float bi = b[i];
-            const float lu = LU[i * size + i];
-
-            const float sum01 = sum0 + sum1;
-            const float sum23 = sum2 + sum3;
-            const float sum0123 = sum01 + sum23;
-
-            float sumRest = 0;
-            for (int k = 4 * (i / 4); k < i; k++) {
-                // printf("k: %d\n", k);
-                const float lu0 = LU[i * size + k];
-                const float xk0 = x[k];
-                const float term0 = lu0 * xk0;
-                sumRest += term0;
-            }
-
-            const float sum = sum0123 + sumRest;
-            const float num = bi - sum;
-            const float xi = num / lu;
-            x[i] = xi;
-        }
-    } else {
-        for (int i = d - 1; i >= 0; --i) {
-            float sum0 = 0;
-            float sum1 = 0;
-            float sum2 = 0;
-            float sum3 = 0;
-
-            for (int k = i + 1; k + 3 < d; ++k) {
-                const int isizek = i * size + k;
-
-                const float lu0 = LU[isizek];
-                const float xk0 = x[k];
-
-                const float lu1 = LU[isizek + 1];
-                const float xk1 = x[k + 1];
-
-                const float lu2 = LU[isizek + 2];
-                const float xk2 = x[k + 2];
-
-                const float lu3 = LU[isizek + 3];
-                const float xk3 = x[k + 3];
-
-                const float term0 = lu0 * xk0;
-                const float term1 = lu1 * xk1;
-                const float term2 = lu2 * xk2;
-                const float term3 = lu3 * xk3;
-
-                sum0 += term0;
-                sum1 += term1;
-                sum2 += term2;
-                sum3 += term3;
-            }
-
-            float sumRest = 0;
-            const float sum01 = sum0 + sum1;
-            const float sum23 = sum2 + sum3;
-            const float sum0123 = sum01 + sum23;
-            const float bi = b[i];
-            const float lu = LU[i * size + i];
-
-
-            for (int k = 4 * ((i + 1) / 4); k < d; k++) {
-                printf("k: %d\n", k);
-                const float lu0 = LU[i * size + k];
-                const float xk0 = x[k];
-                const float term0 = lu0 * xk0;
-                sumRest += term0;
-            }
-            const float sum = sum0123 + sumRest;
-            const float num = bi - sum;
-            const float xi = num / lu;
-            x[i] = xi;
-        }
-    }
-}
-
-
-void transpose(float *M, float *M_T, int d, int size) {
-    for (int i = 0; i < d; ++i) {
-        for (int j = 0; j < d; ++j) {
-            M_T[j * size + i] = M[i * size + j];
-        }
-    }
-}
-
-
 void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
                     int maxIter, float *sums, float *K, float *v) {
     for (int j = jj; j < jj + 8; j++) {
@@ -330,8 +201,28 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
 }
 
 void
+dispatch_triangle_solve(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
+                        int n, int maxIter, int k_max, float *sums, float *K, float *v, float *k_star) {
+
+    // TODO: flag for loading k_star or not: here not, next call yes
+    solve_small_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 4, sums, K, v, k_star);
+
+    for (int w = 0; w < 4; w++) {
+        for (int y = 0; y < 4; y++) {
+            for (int z = 0; z < 8; z++) {
+                k_star[(kk + 4 + w) * 8 + z] -= K[(kk + 4 + w) * maxIter + ll + y] * v[(kk + y) * 8 + z];
+            }
+        }
+    }
+    solve_small_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk + 4, ll + 4, n, maxIter, 4, sums, K, v, k_star);
+}
+
+
+void
 solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
-                          int n, int maxIter, int k_max, float *sums, float *K, float *v) {
+                          int n, int maxIter, int k_max, float *sums, float *K, float *v, float *k_star) {
+    // Assumptions: ll==kk, k_max==4
+
     const __m256 _c_xy_star0 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * jj);
     const __m256 _c_xy_star1 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * (jj + 4));
     const __m256 _c_xstar_h1 = _mm256_permute2f128_ps(_c_xy_star0, _c_xy_star1, 32);
@@ -357,7 +248,10 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
     const __m256 exponenty0 = _mm256_mul_ps(exponenty_00, exponenty_00);
     const __m256 exponentxy0 = _mm256_add_ps(exponentx0, exponenty0);
     const __m256 exponent0 = _mm256_div_ps(exponentxy0, _c_minus_two_vector);
-    const __m256 kstar_vector0 = exp256_ps(exponent0);
+    // const __m256 kstar_vector0 = exp256_ps(exponent0);
+    const __m256 kstar_vector_new0 = exp256_ps(exponent0);
+    const __m256 old_kstar0 = _mm256_loadu_ps(k_star + kk * 8);
+    const __m256 kstar_vector0 = _mm256_add_ps(old_kstar0, kstar_vector_new0);
 
 
     const __m256 K_diag0 = _mm256_set1_ps(K[kk * maxIter + kk]);
@@ -383,7 +277,10 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
     const __m256 exponenty1 = _mm256_mul_ps(exponenty_01, exponenty_01);
     const __m256 exponentxy1 = _mm256_add_ps(exponentx01, exponenty1);
     const __m256 exponent1 = _mm256_div_ps(exponentxy1, _c_minus_two_vector);
-    const __m256 kstar_vector1 = exp256_ps(exponent1);
+    // const __m256 kstar_vector1 = exp256_ps(exponent1);
+    const __m256 kstar_vector_new1 = exp256_ps(exponent1);
+    const __m256 old_kstar1 = _mm256_loadu_ps(k_star + (kk + 1) * 8);
+    const __m256 kstar_vector1 = _mm256_add_ps(old_kstar1, kstar_vector_new1);
 
 
     // l loop executed once with l = ll
@@ -417,7 +314,10 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
     const __m256 exponenty2 = _mm256_mul_ps(exponenty_02, exponenty_02);
     const __m256 exponentxy2 = _mm256_add_ps(exponentx02, exponenty2);
     const __m256 exponent2 = _mm256_div_ps(exponentxy2, _c_minus_two_vector);
-    const __m256 kstar_vector2 = exp256_ps(exponent2);
+//    const __m256 kstar_vector2 = exp256_ps(exponent2);
+    const __m256 kstar_vector_new2 = exp256_ps(exponent2);
+    const __m256 old_kstar2 = _mm256_loadu_ps(k_star + (kk + 2) * 8);
+    const __m256 kstar_vector2 = _mm256_add_ps(old_kstar2, kstar_vector_new2);
 
 
     // l loop executed twice: l=ll, l=ll+1
@@ -463,7 +363,10 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
     const __m256 exponenty3 = _mm256_mul_ps(exponenty_03, exponenty_03);
     const __m256 exponentxy3 = _mm256_add_ps(exponentx3, exponenty3);
     const __m256 exponent3 = _mm256_div_ps(exponentxy3, _c_minus_two_vector);
-    const __m256 kstar_vector3 = exp256_ps(exponent3);
+    // const __m256 kstar_vector3 = exp256_ps(exponent3);
+    const __m256 kstar_vector_new3 = exp256_ps(exponent3);
+    const __m256 old_kstar3 = _mm256_loadu_ps(k_star + (kk + 3) * 8);
+    const __m256 kstar_vector3 = _mm256_add_ps(old_kstar3, kstar_vector_new3);
 
     // l loop executed 3 times: l = ll, l = ll+1, l=ll+2
     /*__m256 v_vector_0; (kk+3 == ll => No iteration
@@ -504,7 +407,7 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
 
 
 void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
-                         int n, int maxIter, int k_max, float *sums, float *K, float *v) {
+                         int n, int maxIter, int k_max, float *sums, float *K, float *v, float *k_star) {
     const __m256 xy_star0 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * jj);
     const __m256 xy_star1 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * (jj + 4));
     const __m256 xstar_h1 = _mm256_permute2f128_ps(xy_star0, xy_star1, 32);
@@ -530,7 +433,9 @@ void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *
         const __m256 exponenty = _mm256_mul_ps(exponenty_0, exponenty_0);
         const __m256 exponentxy = _mm256_add_ps(exponentx, exponenty);
         const __m256 exponent = _mm256_div_ps(exponentxy, minus_two_vector);
-        const __m256 kstar_vector = exp256_ps(exponent);
+        const __m256 kstar_vector_new = exp256_ps(exponent);
+        const __m256 old_kstar = _mm256_loadu_ps(k_star + k * 8);
+        const __m256 kstar_vector = _mm256_add_ps(old_kstar, kstar_vector_new);
 
         __m256 v_vector_0;
         for (int l = ll; l < k; ++l) {
@@ -547,6 +452,7 @@ void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *
         _mm256_storeu_ps(v + k * 8, v_vector_2);
 
         mu_vector = _mm256_fmadd_ps(kstar_vector, _mm256_set1_ps(alpha[k]), mu_vector);
+
         sigma_vector = _mm256_fnmadd_ps(v_vector_2, v_vector_2, sigma_vector);
 
     }
@@ -572,11 +478,11 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
     const __m256 v_row_0 = _mm256_loadu_ps(v + ll * 8);
     const __m256 v_row_1 = _mm256_loadu_ps(v + (ll + 1) * 8);
     const __m256 v_row_2 = _mm256_loadu_ps(v + (ll + 2) * 8);
+    const __m256 v_row_3 = _mm256_loadu_ps(v + (ll + 3) * 8);
     const __m256 v_row_4 = _mm256_loadu_ps(v + (ll + 4) * 8);
     const __m256 v_row_5 = _mm256_loadu_ps(v + (ll + 5) * 8);
     const __m256 v_row_6 = _mm256_loadu_ps(v + (ll + 6) * 8);
     const __m256 v_row_7 = _mm256_loadu_ps(v + (ll + 7) * 8);
-    const __m256 v_row_3 = _mm256_loadu_ps(v + (ll + 3) * 8);
 
     const int kk_k_max = kk + k_max;
 
@@ -773,7 +679,6 @@ void gp_regression_opt(float *X_grid,
                        float *T,
                        int t,
                        int maxIter,
-                       float   (*kernel)(float *, float *, float *, float *),
                        float *mu,
                        float *sigma,
                        bool *sampled,
@@ -818,6 +723,7 @@ void gp_regression_opt(float *X_grid,
     float *x = (float *) malloc(t_gp * sizeof(float));
     float *alpha = (float *) malloc(t_gp * sizeof(float));
     float *v = (float *) malloc(8 * t_gp * sizeof(float));
+    float *k_star = (float *) malloc(8 * t_gp * sizeof(float));
 
 
     cholesky_solve2(t_gp, maxIter, K, T, x, 1);
@@ -846,6 +752,7 @@ void gp_regression_opt(float *X_grid,
             }
             for (int zz = 0; zz < t_gp_8; ++zz) {
                 v[zz] = 0;
+                k_star[zz] = 0;
             }
             for (int kk = 0; kk + 7 < t_gp; kk += 8) {
                 for (int z = 0; z < 8 * 8; z++) {
@@ -853,7 +760,10 @@ void gp_regression_opt(float *X_grid,
                 }
                 for (int ll = 0; ll <= kk; ll += 8) {
                     if (ll == kk) {
-                        solve_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 8, sums, K, v);
+                        /*solve_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 8, sums, K, v,
+                                            k_star);*/
+                        dispatch_triangle_solve(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 8, sums, K, v,
+                                                k_star);
                     } else {
                         mmm_vect(jj, kk, ll, maxIter, 8, sums, K, v);
                     }
@@ -867,7 +777,7 @@ void gp_regression_opt(float *X_grid,
                 mmm_vect(jj, k_start, ll, maxIter, t_gp - k_start, sums, K, v);
             }
             solve_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, k_start, k_start, n, maxIter, t_gp - k_start, sums,
-                                K, v);
+                                K, v, k_star);
 
             const int in_jj = in + jj;
 
@@ -896,4 +806,5 @@ void gp_regression_opt(float *X_grid,
     free(x);
     free(alpha);
     free(v);
+    free(k_star);
 }
