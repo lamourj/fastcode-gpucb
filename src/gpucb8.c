@@ -450,7 +450,7 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
 
 
 void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
-                         int n, int maxIter, int k_max, float *sums, float *K, float *v, float *k_star) {
+                         int n, int maxIter, int k_max, float *sums, float *K, float *v) {
     const __m256 xy_star0 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * jj);
     const __m256 xy_star1 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * (jj + 4));
     const __m256 xstar_h1 = _mm256_permute2f128_ps(xy_star0, xy_star1, 32);
@@ -476,9 +476,7 @@ void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *
         const __m256 exponenty = _mm256_mul_ps(exponenty_0, exponenty_0);
         const __m256 exponentxy = _mm256_add_ps(exponentx, exponenty);
         const __m256 exponent = _mm256_div_ps(exponentxy, minus_two_vector);
-        const __m256 kstar_vector_new = exp256_ps(exponent);
-        const __m256 old_kstar = _mm256_loadu_ps(k_star + k * 8);
-        const __m256 kstar_vector = _mm256_add_ps(old_kstar, kstar_vector_new);
+        const __m256 kstar_vector = exp256_ps(exponent);
 
         __m256 v_vector_0;
         for (int l = ll; l < k; ++l) {
@@ -497,8 +495,8 @@ void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *
         mu_vector = _mm256_fmadd_ps(kstar_vector, _mm256_set1_ps(alpha[k]), mu_vector);
 
         sigma_vector = _mm256_fnmadd_ps(v_vector_2, v_vector_2, sigma_vector);
-
     }
+
     _mm256_storeu_ps(mu + i * n + jj, mu_vector);
     _mm256_storeu_ps(sigma + i * n + jj, sigma_vector);
 }
@@ -764,7 +762,6 @@ void gp_regression_opt(float *X_grid,
     float *x = (float *) malloc(t_gp * sizeof(float));
     float *alpha = (float *) malloc(t_gp * sizeof(float));
     float *v = (float *) malloc(8 * t_gp * sizeof(float));
-    float *k_star = (float *) malloc(8 * t_gp * sizeof(float));
 
 
     cholesky_solve2(t_gp, maxIter, K, T, x, 1);
@@ -793,7 +790,6 @@ void gp_regression_opt(float *X_grid,
             }
             for (int zz = 0; zz < t_gp_8; ++zz) {
                 v[zz] = 0;
-                k_star[zz] = 0;
             }
             for (int kk = 0; kk + 7 < t_gp; kk += 8) {
                 for (int z = 0; z < 8 * 8; z++) {
@@ -817,7 +813,7 @@ void gp_regression_opt(float *X_grid,
                 mmm_vect(jj, k_start, ll, maxIter, t_gp - k_start, sums, K, v);
             }
             solve_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, k_start, k_start, n, maxIter, t_gp - k_start, sums,
-                                K, v, k_star);
+                                K, v);
 
             const int in_jj = in + jj;
 
@@ -846,5 +842,4 @@ void gp_regression_opt(float *X_grid,
     free(x);
     free(alpha);
     free(v);
-    free(k_star);
 }
