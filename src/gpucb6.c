@@ -362,7 +362,7 @@ void gp_regression(float *X_grid,
                 float x_star = X_grid[2 * n * i + 2 * j]; // Current grid point that we are looking at
                 float y_star = X_grid[2 * n * i + 2 * j + 1];
                 float f_star = 0;
-                float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
+                float variance = 1.0;
                 int x_, y_;
                 float arg1x, arg1y, sum;
 

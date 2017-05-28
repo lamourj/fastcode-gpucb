@@ -55,7 +55,7 @@ void initialize_meshgrid_baseline(float *X_grid, int n, float min, float inc) {
 float function_baseline(float x, float y) {
     // float t = sin(x) + cos(y);
     float t = -powf(x, 2) - powf(y, 2);
-    printf("(C code) Sampled: [%.2f %.2f] result %f \n", x, y, t);
+    // printf("(C code) Sampled: [%.2f %.2f] result %f \n", x, y, t);
     return t;
 }
 
@@ -303,7 +303,7 @@ void gp_regression_baseline(float *X_grid,
             mu[i * n + j] = f_star;
             cholesky_solve2_baseline(t_gp, maxIter, K, k_star, v, 1);
 
-            float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
+            float variance = 1.0;
             for (int k = 0; k < t_gp; k++) {
                 variance -= v[k] * v[k];
             }

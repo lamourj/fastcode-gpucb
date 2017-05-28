@@ -302,7 +302,7 @@ void gp_regression_bl(float *X_grid,
             mu[i * n + j] = f_star;
             cholesky_solve2_bl(t_gp, maxIter, K, k_star, v, 1);
 
-            float variance = (*kernel)(&x_star, &y_star, &x_star, &y_star);
+            float variance = 1.0;
             for (int k = 0; k < t_gp; k++) {
                 variance -= v[k] * v[k];
             }
