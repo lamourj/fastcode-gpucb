@@ -83,6 +83,8 @@ void gp_regression_opt(float *X_grid,
                        int n,
                        int *maxIJ);
 
-void dispatch_mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
+void dispatch_mmm_vect_size4(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
+
+void dispatch_mmm_vect_small(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
 
 #endif //FASTCODE_GPUCB_GPUCB8_H
