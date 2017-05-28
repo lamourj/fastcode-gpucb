@@ -3,6 +3,12 @@
 //
 
 #include "triangle_full.h"
+#include <stdio.h>
+#include <math.h>
+#include <float.h>
+#include "avx_mathfun.h"
+
+const char *tag[20] = {"triangle_full_vect"};
 
 void initialize(const int I, const int N) {
     printf("Init solve triangle over full grid\n");
@@ -25,6 +31,7 @@ void initialize(const int I, const int N) {
     v = (float *) malloc(8 * I * sizeof(float));
     k_star = (float *) malloc(8 * I * sizeof(float));
     sums = (float *) malloc(64 * sizeof(float));
+    A = (float *) malloc(I * I * sizeof(float));
 
     // Initialize matrices
     for (int i = 0; i < N * N; i++) {
@@ -32,7 +39,6 @@ void initialize(const int I, const int N) {
         sigma_[i] = 0.5;
     }
 
-    float A[I*I];
 
     // Make a PSD matrix:
     for (int i = 0; i < I; ++i) {
@@ -60,6 +66,22 @@ void initialize(const int I, const int N) {
     }
 
     initialize_meshgrid(X_grid_, N_, GRID_MIN_, GRID_INC_);
+    printf("init done");
+}
+
+void clean() {
+    free(X_);
+    free(X_grid_);
+    free(A);
+    free(mu_);
+    free(sigma_);
+    free(K_);
+    free(sums);
+    free(k_star);
+    free(x);
+    free(alpha);
+    free(v);
+ 
 }
 
 void initialize_meshgrid(float *X_grid, int n, float min, float inc) {
@@ -84,6 +106,9 @@ void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, 
     }
 }
 
+float frand() {
+    return (float) rand() / (float) RAND_MAX;
+}
 
 void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
     const __m256 v_row_0 = _mm256_loadu_ps(v + ll * 8);
@@ -284,7 +309,8 @@ void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float
 
 
 void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                    int maxIter, float *sums, float *K, float *v) {
+                    int maxIter,int k_max,float *sums, float *K, float *v) {
+
     for (int j = jj; j < jj + 8; j++) {
         float muinj = mu[i * n + j];
         float sigmainj = sigma[i * n + j];
@@ -293,7 +319,7 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
         int x_, y_;
         float arg1x, arg1y;
 
-        for (int k = kk; k < kk + 8; k++) {
+        for (int k = kk; k < kk + k_max; k++) {
             x_ = X[2 * k];
             y_ = X[2 * k + 1];
             arg1x = X_grid[x_ * 2 * n + 2 * y_];
@@ -313,6 +339,24 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
     }
 }
 
+void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size) {
+    for (int i = n1; i < n2; ++i) {
+        // Update the off diagonal entries.
+        for (int j = 0; j < i; ++j) {
+            for (int k = 0; k < j; ++k) {
+                A[size * i + j] -= A[size * i + k] * A[size * j + k];
+            }
+            A[size * i + j] /= A[size * j + j];
+            A_T[size * j + i] = A[size * i + j];
+        }
+        // Update the diagonal entry.
+        for (int k = 0; k < i; ++k) {
+            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+        }
+        A[size * i + i] = sqrtf(A[size * i + i]);
+        A_T[size * i + i] = A[size * i + i];
+    }
+}
 
 void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
                          int n, int maxIter, int k_max, float *sums, float *K, float *v, float *k_star) {
@@ -378,16 +422,18 @@ void run() {
 
     const int t_gp_8 = 8 * t_gp;
     const int k_start = 8 * (t_gp / 8);
+    const int k_max = t_gp-k_start;
     const int k_start_minus_7 = k_start - 7;
 
 
     for (int i = 0; i < n; i++) { // for all points in X_grid ([i])
+	
         const int in = i * n;
         for (int jj = 0; jj < n; jj += 8) { // for all points in X_grid ([i][j])
             for (int j = jj; j < jj + 8; j++) {
                 const int inj = in + j;
-                mu[inj] = 0;
-                sigma[inj] = 1.0;
+                mu_[inj] = 0;
+                sigma_[inj] = 1.0;
             }
             for (int zz = 0; zz < t_gp_8; ++zz) {
                 v[zz] = 0;
@@ -399,12 +445,11 @@ void run() {
                 }
                 for (int ll = 0; ll <= kk; ll += 8) {
                     if (ll == kk) {
-//                        solve_triangle_vect(X_grid, X_, mu_, sigma_, alpha, i, jj, kk, ll, n, maxIter, 8, sums, K, v,
-//                                            k_star);
-                        solve_triangle(X_grid, X_, mu_, sigma_, alpha, i, jj, kk, ll, n, maxIter, sums, K, v);
+                        solve_triangle_vect(X_grid_, X_, mu_, sigma_, alpha, i, jj, kk, ll, n, maxIter, 8, sums, K_, v,k_star);
+                        //solve_triangle(X_grid_, X_, mu_, sigma_, alpha, i, jj, kk, ll, n, maxIter,8, sums, K_, v);
                     } else {
-//                        mmm_vect(jj, kk, ll, maxIter, 8, sums, K, v);
-                        mmm(jj, kk, ll, maxIter, 8, sums, K_, v);
+                        mmm_vect(jj, kk, ll, maxIter, 8, sums, K_, v);
+                        //mmm(jj, kk, ll, maxIter, 8, sums, K_, v);
                     }
                 }
             }
@@ -413,12 +458,11 @@ void run() {
             }
 
             for (int ll = 0; ll < k_start_minus_7; ll += 8) {
-//                mmm_vect(jj, k_start, ll, maxIter, t_gp - k_start, sums, K, v);
-                mmm(jj, k_start, ll, maxIter, t_gp-k_start, sums, K, v);
+                mmm_vect(jj, k_start, ll, maxIter, t_gp - k_start, sums, K_, v);
+ //               mmm(jj, k_start, ll, maxIter, t_gp-k_start, sums, K_, v);
             }
-//            solve_triangle_vect(X_grid, X_, mu_, sigma_, alpha, i, jj, k_start, k_start, n, maxIter, t_gp - k_start, sums,
-//                                K, v, k_star);
-            solve_triangle(X_grid, X_, mu_, sigma_, alpha, i, jj, kk, ll, n, maxIter, sums, K, v);
+            solve_triangle_vect(X_grid_, X_, mu_, sigma_, alpha, i, jj, k_start, k_start, n, maxIter, t_gp - k_start, sums,K_, v, k_star);
+            //solve_triangle(X_grid_, X_, mu_, sigma_, alpha, i, jj, k_start, k_start, n, maxIter, k_max, sums, K_, v);
         }
     }
 }
