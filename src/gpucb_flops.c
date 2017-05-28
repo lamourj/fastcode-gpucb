@@ -1,5 +1,5 @@
 // This version includes the incremental cholesky factorization.
-#include "gpucb.h"
+#include "gpucb_flops.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -7,7 +7,37 @@
 #include <string.h>
 #include <float.h>
 
-const char *tag[10] = {"baseline"};
+const char *tag[10] = {"flops_c"};
+
+float add(float a, float b) {
+    _N_ADDS += 1;
+    return a + b;
+}
+
+float sub(float a, float b) {
+    _N_ADDS += 1;
+    return a - b;
+}
+
+float divide(float a, float b) {
+    _N_DIVS += 1;
+    return a / b;
+}
+
+float fexponential(float a) {
+    _N_EXPS += 1;
+    return expf(a);
+}
+
+float mult(float a, float b) {
+    _N_MULS += 1;
+    return a * b;
+}
+
+float square_root(float a) {
+    _N_SQRT += 1;
+    return sqrtf(a);
+}
 
 void initialize(const int I, const int N) {
     printf("Init baseline\n");
@@ -25,6 +55,12 @@ void initialize(const int I, const int N) {
     sigma_ = (float *) malloc(N * N * sizeof(float));
     K_ = (float *) malloc(I * I * sizeof(float));
     L_ = (float *) malloc(I * I * sizeof(float));
+
+    _N_ADDS = 0;
+    _N_DIVS = 0;
+    _N_EXPS = 0;
+    _N_MULS = 0;
+    _N_SQRT = 0;
 
     // Initialize matrices
     for (int i = 0; i < N * N; i++) {
@@ -52,8 +88,11 @@ void initialize_meshgrid_baseline(float *X_grid, int n, float min, float inc) {
 
 float function_baseline(float x, float y) {
     // float t = sin(x) + cos(y);
-    float t = -powf(x, 2) - powf(y, 2);
-    // printf("(C code) Sampled: [%.2f %.2f] result %f \n", x, y, t);
+    // float t = -powf(x, 2) - powf(y, 2);
+    float xx = mult(x, x);
+    float yy = mult(y, y);
+    float xx_neg = sub(0, xx);
+    float t = sub(xx_neg, yy);
     return t;
 }
 
@@ -71,13 +110,12 @@ void learn_baseline(float *X_grid,
                     const float beta,
                     int n) {
 
-    bool debug = true;
     int maxI = 0;
     int maxJ = 0;
     float max = -FLT_MAX;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            float currentValue = mu[i * n + j] + sqrtf(beta) * sigma[i * n + j];
+            float currentValue = add(mu[i * n + j], mult(sqrtf(beta), sigma[i * n + j]));
 
             if (!sampled[i * n + j] && (currentValue > max)) {
                 max = currentValue;
@@ -97,8 +135,14 @@ void learn_baseline(float *X_grid,
 
 float kernel2_baseline(float *x1, float *y1, float *x2, float *y2) {
     // RBF kernel
-    float sigma = 1;
-    return expf(-((*x1 - *x2) * (*x1 - *x2) + (*y1 - *y2) * (*y1 - *y2)) / (2 * sigma * sigma));
+    float x1x2 = sub(*x1, *x2);
+    float y1y2 = sub(*y1, *y2);
+    float x1x2_squared = mult(x1x2, x1x2);
+    float y1y2_squared = mult(y1y2, y1y2);
+    float num = add(x1x2_squared, y1y2_squared);
+    float operand = sub(0, divide(num, 2.f));
+    float t = fexponential(operand);
+    return t;
 }
 
 void run() {
@@ -117,34 +161,9 @@ void clean() {
     free(K_);
     free(L_);
 
+    printf("N=%d, I=%d: add: %lu, mult: %lu, div: %lu, exp: %lu\n", N_, I_, _N_ADDS, _N_MULS, _N_DIVS, _N_EXPS);
 }
 
-
-/*
- Straightforward implementation of inplace Cholesky decomposition of matrix A.
- Input arguments:
-    A:    The matrix to decompose
-    n:    The size of the data in matrix A to decompose
-    size: The actual size of the rows
- */
-void cholesky_baseline(float *A, int n, int size) {
-    for (int i = 0; i < n; ++i) {
-
-        // Update the off diagonal entries first.
-        for (int j = 0; j < i; ++j) {
-            for (int k = 0; k < j; ++k) {
-                A[size * i + j] -= A[size * i + k] * A[size * j + k];
-            }
-            A[size * i + j] /= A[size * j + j];
-        }
-
-        // Update the diagonal entry of this row.
-        for (int k = 0; k < i; ++k) {
-            A[size * i + i] -= A[size * i + k] * A[size * i + k];
-        }
-        A[size * i + i] = sqrtf(A[size * i + i]);
-    }
-}
 
 /*
  Incremental implementation of Cholesky decomposition:
@@ -162,16 +181,17 @@ void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int siz
         // Update the off diagonal entries.
         for (int j = 0; j < i; ++j) {
             for (int k = 0; k < j; ++k) {
-                A[size * i + j] -= A[size * i + k] * A[size * j + k];
+
+                A[size * i + j] = sub(A[size * i + j], mult(A[size * i + k], A[size * j + k]));
             }
-            A[size * i + j] /= A[size * j + j];
+            A[size * i + j] = divide(A[size * i + j], A[size * j + j]);
             A_T[size * j + i] = A[size * i + j];
         }
         // Update the diagonal entry.
         for (int k = 0; k < i; ++k) {
-            A[size * i + i] -= A[size * i + k] * A[size * i + k];
+            A[size * i + i] = sub(A[size * i + i], mult(A[size * i + k], A[size * i + k]));
         }
-        A[size * i + i] = sqrtf(A[size * i + i]);
+        A[size * i + i] = square_root(A[size * i + i]);
         A_T[size * i + i] = A[size * i + i];
     }
 }
@@ -190,46 +210,23 @@ void incremental_cholesky_baseline(float *A, float *A_T, int n1, int n2, int siz
 void cholesky_solve2_baseline(int d, int size, float *LU, float *b, float *x, int lower) {
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
-            float sum = 0.;
+            float sum = 0;
             for (int k = 0; k < i; ++k) {
-                sum += LU[i * size + k] * x[k];
+
+                sum = add(sum, mult(LU[i * size + k], x[k]));
             }
-            x[i] = (b[i] - sum) / LU[i * size + i];
+            x[i] = divide(sub(b[i], sum), LU[i * size + i]);
         }
     } else {
         for (int i = d - 1; i >= 0; --i) {
-            float sum = 0.;
+            float sum = 0;
             for (int k = i + 1; k < d; ++k) {
-                sum += LU[i * size + k] * x[k];
+                sum = add(sum, mult(LU[i * size + k], x[k]));
             }
-            x[i] = (b[i] - sum) / LU[i * size + i];
+            x[i] = divide(sub(b[i], sum), LU[i * size + i]);
         }
     }
 
-}
-
-// Old version.
-void cholesky_solve_baseline(int d, float *LU, float *b, float *x) {
-    float y[d];
-    for (int i = 0; i < d; ++i) {
-        float sum = 0.;
-        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
-        y[i] = (b[i] - sum) / LU[i * d + i];
-    }
-    for (int i = d - 1; i >= 0; --i) {
-        float sum = 0.;
-        for (int k = i + 1; k < d; ++k)sum += LU[k * d + i] * x[k];
-        x[i] = (y[i] - sum) / LU[i * d + i];
-    }
-}
-
-
-void transpose_baseline(float *M, float *M_T, int d, int size) {
-    for (int i = 0; i < d; ++i) {
-        for (int j = 0; j < d; ++j) {
-            M_T[j * size + i] = M[i * size + j];
-        }
-    }
 }
 
 
@@ -258,7 +255,8 @@ void gp_regression_baseline(float *X_grid,
                                        &X_grid[x2 * 2 * n + 2 * y2], &X_grid[x2 * 2 * n + 2 * y2 + 1]);
         // K is symmetric, shouldn't go through all entries when optimizing
         if (i == j) {
-            K[i * maxIter + j] += 0.5;
+            K[i * maxIter + j] = add(K[i * maxIter + j], 0.5);
+            // K[i * maxIter + j] += 0.5;
         }
     }
 
@@ -295,7 +293,7 @@ void gp_regression_baseline(float *X_grid,
 
             float f_star = 0;
             for (int k = 0; k < t_gp; k++) {
-                f_star += k_star[k] * alpha[k];
+                f_star = add(f_star, mult(k_star[k], alpha[k]));
             }
 
             mu[i * n + j] = f_star;
@@ -303,7 +301,7 @@ void gp_regression_baseline(float *X_grid,
 
             float variance = 1.0;
             for (int k = 0; k < t_gp; k++) {
-                variance -= v[k] * v[k];
+                variance = sub(variance, mult(v[k], v[k]));
             }
 
 
