@@ -11,7 +11,7 @@
 float GRID_MIN_;
 float GRID_INC_;
 float BETA_;
-extern const char *tag[10];
+extern const char *tag[20];
 // Allocate memory
 float *T_;
 int *X_;
@@ -21,6 +21,10 @@ float *mu_;
 float *sigma_;
 float *K_;
 float *L_;
+float *l_;
+float *alpha_;
+float *v_;
+float *sums_;
 int *maxIJ_;
 
 int I_;
@@ -38,6 +42,10 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
                     int maxIter, float *sums, float *K, float *v);
 
 void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                         int maxIter, float *sums, float *K, float *v);
+                    int maxIter, int kMax, float *sums, float *K, float *v);
+
+void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size);
+
+float frand();
 
 #endif //FASTCODE_GPUCB_TRIANGLE_H
