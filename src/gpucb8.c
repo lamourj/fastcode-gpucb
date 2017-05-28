@@ -202,27 +202,82 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
 
 void
 dispatch_triangle_solve(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
-                        int n, int maxIter, int k_max, float *sums, float *K, float *v, float *k_star) {
+                        int n, int maxIter, int k_max, float *sums, float *K, float *v) {
+    solve_small_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 4, sums, K, v);
+    dispatch_mmm_vect(jj, kk, ll, maxIter, k_max, sums, K, v);
+    solve_small_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk + 4, ll + 4, n, maxIter, 4, sums, K, v);
+}
 
-    // TODO: flag for loading k_star or not: here not, next call yes
-    solve_small_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 4, sums, K, v, k_star);
 
-    for (int w = 0; w < 4; w++) {
-        for (int y = 0; y < 4; y++) {
-            for (int z = 0; z < 8; z++) {
-                k_star[(kk + 4 + w) * 8 + z] -= K[(kk + 4 + w) * maxIter + ll + y] * v[(kk + y) * 8 + z];
-            }
-        }
-    }
-    solve_small_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk + 4, ll + 4, n, maxIter, 4, sums, K, v, k_star);
+void dispatch_mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
+    const __m256 v_row_0 = _mm256_loadu_ps(v + ll * 8);
+    const __m256 v_row_1 = _mm256_loadu_ps(v + (ll + 1) * 8);
+    const __m256 v_row_2 = _mm256_loadu_ps(v + (ll + 2) * 8);
+    const __m256 v_row_3 = _mm256_loadu_ps(v + (ll + 3) * 8);
+
+
+    const int k = kk + 4;
+    // k = 0
+    __m256 sum_0 = _mm256_loadu_ps(sums + (k % 8) * 8);
+    __m256 sum_1 = _mm256_loadu_ps(sums + ((k + 1) % 8) * 8);
+    __m256 sum_2 = _mm256_loadu_ps(sums + ((k + 2) % 8) * 8);
+    __m256 sum_3 = _mm256_loadu_ps(sums + ((k + 3) % 8) * 8);
+
+    const int k_maxIter_ll_0 = k * maxIter + ll;
+    const int k_maxIter_ll_1 = (k + 1) * maxIter + ll;
+    const int k_maxIter_ll_2 = (k + 2) * maxIter + ll;
+    const int k_maxIter_ll_3 = (k + 3) * maxIter + ll;
+
+    const __m256 k_element_0_0 = _mm256_set1_ps(K[k_maxIter_ll_0]);
+    const __m256 k_element_0_1 = _mm256_set1_ps(K[k_maxIter_ll_1]);
+    const __m256 k_element_0_2 = _mm256_set1_ps(K[k_maxIter_ll_2]);
+    const __m256 k_element_0_3 = _mm256_set1_ps(K[k_maxIter_ll_3]);
+
+    const __m256 k_element_1_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 1]);
+    const __m256 k_element_1_1 = _mm256_set1_ps(K[k_maxIter_ll_1 + 1]);
+    const __m256 k_element_1_2 = _mm256_set1_ps(K[k_maxIter_ll_2 + 1]);
+    const __m256 k_element_1_3 = _mm256_set1_ps(K[k_maxIter_ll_3 + 1]);
+
+    const __m256 k_element_2_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 2]);
+    const __m256 k_element_2_1 = _mm256_set1_ps(K[k_maxIter_ll_1 + 2]);
+    const __m256 k_element_2_2 = _mm256_set1_ps(K[k_maxIter_ll_2 + 2]);
+    const __m256 k_element_2_3 = _mm256_set1_ps(K[k_maxIter_ll_3 + 2]);
+
+    const __m256 k_element_3_0 = _mm256_set1_ps(K[k_maxIter_ll_0 + 3]);
+    const __m256 k_element_3_1 = _mm256_set1_ps(K[k_maxIter_ll_1 + 3]);
+    const __m256 k_element_3_2 = _mm256_set1_ps(K[k_maxIter_ll_2 + 3]);
+    const __m256 k_element_3_3 = _mm256_set1_ps(K[k_maxIter_ll_3 + 3]);
+
+    sum_0 = _mm256_fmadd_ps(k_element_0_0, v_row_0, sum_0);
+    sum_1 = _mm256_fmadd_ps(k_element_0_1, v_row_0, sum_1);
+    sum_2 = _mm256_fmadd_ps(k_element_0_2, v_row_0, sum_2);
+    sum_3 = _mm256_fmadd_ps(k_element_0_3, v_row_0, sum_3);
+
+    sum_0 = _mm256_fmadd_ps(k_element_1_0, v_row_1, sum_0);
+    sum_1 = _mm256_fmadd_ps(k_element_1_1, v_row_1, sum_1);
+    sum_2 = _mm256_fmadd_ps(k_element_1_2, v_row_1, sum_2);
+    sum_3 = _mm256_fmadd_ps(k_element_1_3, v_row_1, sum_3);
+
+    sum_0 = _mm256_fmadd_ps(k_element_2_0, v_row_2, sum_0);
+    sum_1 = _mm256_fmadd_ps(k_element_2_1, v_row_2, sum_1);
+    sum_2 = _mm256_fmadd_ps(k_element_2_2, v_row_2, sum_2);
+    sum_3 = _mm256_fmadd_ps(k_element_2_3, v_row_2, sum_3);
+
+    sum_0 = _mm256_fmadd_ps(k_element_3_0, v_row_3, sum_0);
+    sum_1 = _mm256_fmadd_ps(k_element_3_1, v_row_3, sum_1);
+    sum_2 = _mm256_fmadd_ps(k_element_3_2, v_row_3, sum_2);
+    sum_3 = _mm256_fmadd_ps(k_element_3_3, v_row_3, sum_3);
+
+    _mm256_storeu_ps(sums + (k % 8) * 8, sum_0);
+    _mm256_storeu_ps(sums + ((k + 1) % 8) * 8, sum_1);
+    _mm256_storeu_ps(sums + ((k + 2) % 8) * 8, sum_2);
+    _mm256_storeu_ps(sums + ((k + 3) % 8) * 8, sum_3);
 }
 
 
 void
 solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
-                          int n, int maxIter, int k_max, float *sums, float *K, float *v, float *k_star) {
-    // Assumptions: ll==kk, k_max==4
-
+                          int n, int maxIter, int k_max, float *sums, float *K, float *v) {
     const __m256 _c_xy_star0 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * jj);
     const __m256 _c_xy_star1 = _mm256_loadu_ps(X_grid + 2 * n * i + 2 * (jj + 4));
     const __m256 _c_xstar_h1 = _mm256_permute2f128_ps(_c_xy_star0, _c_xy_star1, 32);
@@ -248,10 +303,7 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
     const __m256 exponenty0 = _mm256_mul_ps(exponenty_00, exponenty_00);
     const __m256 exponentxy0 = _mm256_add_ps(exponentx0, exponenty0);
     const __m256 exponent0 = _mm256_div_ps(exponentxy0, _c_minus_two_vector);
-    // const __m256 kstar_vector0 = exp256_ps(exponent0);
-    const __m256 kstar_vector_new0 = exp256_ps(exponent0);
-    const __m256 old_kstar0 = _mm256_loadu_ps(k_star + kk * 8);
-    const __m256 kstar_vector0 = _mm256_add_ps(old_kstar0, kstar_vector_new0);
+    const __m256 kstar_vector0 = exp256_ps(exponent0);
 
 
     const __m256 K_diag0 = _mm256_set1_ps(K[kk * maxIter + kk]);
@@ -277,10 +329,7 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
     const __m256 exponenty1 = _mm256_mul_ps(exponenty_01, exponenty_01);
     const __m256 exponentxy1 = _mm256_add_ps(exponentx01, exponenty1);
     const __m256 exponent1 = _mm256_div_ps(exponentxy1, _c_minus_two_vector);
-    // const __m256 kstar_vector1 = exp256_ps(exponent1);
-    const __m256 kstar_vector_new1 = exp256_ps(exponent1);
-    const __m256 old_kstar1 = _mm256_loadu_ps(k_star + (kk + 1) * 8);
-    const __m256 kstar_vector1 = _mm256_add_ps(old_kstar1, kstar_vector_new1);
+    const __m256 kstar_vector1 = exp256_ps(exponent1);
 
 
     // l loop executed once with l = ll
@@ -314,10 +363,7 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
     const __m256 exponenty2 = _mm256_mul_ps(exponenty_02, exponenty_02);
     const __m256 exponentxy2 = _mm256_add_ps(exponentx02, exponenty2);
     const __m256 exponent2 = _mm256_div_ps(exponentxy2, _c_minus_two_vector);
-//    const __m256 kstar_vector2 = exp256_ps(exponent2);
-    const __m256 kstar_vector_new2 = exp256_ps(exponent2);
-    const __m256 old_kstar2 = _mm256_loadu_ps(k_star + (kk + 2) * 8);
-    const __m256 kstar_vector2 = _mm256_add_ps(old_kstar2, kstar_vector_new2);
+    const __m256 kstar_vector2 = exp256_ps(exponent2);
 
 
     // l loop executed twice: l=ll, l=ll+1
@@ -363,10 +409,7 @@ solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float 
     const __m256 exponenty3 = _mm256_mul_ps(exponenty_03, exponenty_03);
     const __m256 exponentxy3 = _mm256_add_ps(exponentx3, exponenty3);
     const __m256 exponent3 = _mm256_div_ps(exponentxy3, _c_minus_two_vector);
-    // const __m256 kstar_vector3 = exp256_ps(exponent3);
-    const __m256 kstar_vector_new3 = exp256_ps(exponent3);
-    const __m256 old_kstar3 = _mm256_loadu_ps(k_star + (kk + 3) * 8);
-    const __m256 kstar_vector3 = _mm256_add_ps(old_kstar3, kstar_vector_new3);
+    const __m256 kstar_vector3 = exp256_ps(exponent3);
 
     // l loop executed 3 times: l = ll, l = ll+1, l=ll+2
     /*__m256 v_vector_0; (kk+3 == ll => No iteration
@@ -460,7 +503,6 @@ void solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *
     _mm256_storeu_ps(sigma + i * n + jj, sigma_vector);
 }
 
-
 void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
     for (int j = jj; j < jj + 8; j++) {
         for (int k = kk; k < kk + k_max; k++) {
@@ -472,7 +514,6 @@ void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, 
         }
     }
 }
-
 
 void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v) {
     const __m256 v_row_0 = _mm256_loadu_ps(v + ll * 8);
@@ -762,8 +803,7 @@ void gp_regression_opt(float *X_grid,
                     if (ll == kk) {
                         /*solve_triangle_vect(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 8, sums, K, v,
                                             k_star);*/
-                        dispatch_triangle_solve(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 8, sums, K, v,
-                                                k_star);
+                        dispatch_triangle_solve(X_grid, X, mu, sigma, alpha, i, jj, kk, ll, n, maxIter, 8, sums, K, v);
                     } else {
                         mmm_vect(jj, kk, ll, maxIter, 8, sums, K, v);
                     }

@@ -61,11 +61,11 @@ void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha
 
 void
 solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                    int maxIter, int k_max, float *sums, float *K, float *v, float* k_star);
+                    int maxIter, int k_max, float *sums, float *K, float *v, float *k_star);
 
 void
 solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
-                          int n, int maxIter, int k_max, float *sums, float *K, float *v, float* k_star);
+                          int n, int maxIter, int k_max, float *sums, float *K, float *v);
 
 void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower);
 
@@ -83,5 +83,6 @@ void gp_regression_opt(float *X_grid,
                        int n,
                        int *maxIJ);
 
+void dispatch_mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
 
 #endif //FASTCODE_GPUCB_GPUCB8_H

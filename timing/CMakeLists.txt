@@ -100,7 +100,7 @@ set(SOURCE_FILES
     ../../src/gpucb.h
     ../../src/gpucb.c
     src/baseline.h
-    src/baseline.h
+    src/baseline.c
     src/main.c
     src/main.h
 )
