@@ -1,0 +1,243 @@
+% IEEE standard conference template; to be used with:
+%   spconf.sty  - LaTeX style file, and
+%   IEEEbib.bst - IEEE bibliography style file.
+% --------------------------------------------------------------------------
+
+\documentclass[letterpaper]{article}
+\usepackage{spconf,amsmath,amssymb,graphicx}
+
+% Example definitions.
+% --------------------
+% nice symbols for real and complex numbers
+\newcommand{\R}[0]{\mathbb{R}}
+\newcommand{\C}[0]{\mathbb{C}}
+
+% bold paragraph titles
+\newcommand{\mypar}[1]{{\bf #1.}}
+
+% Title.
+% ------
+\title{Fast GP UCB implementation}
+%
+% Single address.
+% ---------------
+\name{Markus P\"uschel\thanks{The author thanks Jelena Kovacevic. This paper
+is a modified version of the template she used in her class.}} 
+\address{Department of Computer Science\\ ETH Z\"urich\\Z\"urich, Switzerland}
+
+% For example:
+% ------------
+%\address{School\\
+%		 Department\\
+%		 Address}
+%
+% Two addresses (uncomment and modify for two-address case).
+% ----------------------------------------------------------
+%\twoauthors
+%  {A. Author-one, B. Author-two\sthanks{Thanks to XYZ agency for funding.}}
+%		 {School A-B\\
+%		 Department A-B\\
+%		 Address A-B}
+%  {C. Author-three, D. Author-four\sthanks{The fourth author performed the work
+%		 while at ...}}
+%		 {School C-D\\
+%		 Department C-D\\
+%		 Address C-D}
+%
+
+\begin{document}
+%\ninept
+%
+\maketitle
+%
+
+The hard page limit is 6 pages in this style. Do not reduce font size
+or use other tricks to squeeze. This pdf is formatted in the American letter format, so may look a bit strange when printed out.
+
+\begin{abstract}
+Describe in concise words what you do, why you do it (not necessarily
+in this order), and the main result.  The abstract has to be
+self-contained and readable for a person in the general area. You
+should write the abstract last.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+
+Do not start the introduction with the abstract or a slightly modified
+version. It follows a possible structure of the introduction. 
+Note that the structure can be modified, but the
+content should be the same. Introduction and abstract should fill at most the first page, better less.
+
+\mypar{Motivation} The first task is to motivate what you do.  You can
+start general and zoom in one the specific problem you consider.  In
+the process you should have explained to the reader: what you are doing,
+why you are doing, why it is important (order is usually reversed).
+
+For example, if my result is the fastest DFT implementation ever, one
+could roughly go as follows. First explain why the DFT is important
+(used everywhere with a few examples) and why performance matters (large datasets,
+realtime). Then explain that fast implementations are very hard and
+expensive to get (memory hierarchy, vector, parallel). 
+
+Now you state what you do in this paper. In our example: 
+presenting a DFT implementation that is
+faster for some sizes than all the other ones.
+
+\mypar{Related work} Next, you have to give a brief overview of
+related work. For a paper like this, anywhere between 2 and 8
+references. Briefly explain what they do. In the end contrast to what
+you do to make now precisely clear what your contribution is.
+
+\section{Background: Whatever the Background is}\label{sec:background}
+
+Give a short, self-contained summary of necessary
+background information. For example, assume you present an
+implementation of FFT algorithms. You could organize into DFT
+definition, FFTs considered, and cost analysis. The goal of the
+background section is to make the paper self-contained for an audience
+as large as possible. As in every section
+you start with a very brief overview of the section. Here it could be as follows: In this section 
+we formally define the discrete Fourier transform, introduce the algorithms we use
+and perform a cost analysis.
+
+\mypar{Discrete Fourier Transform}
+Precisely define the transform so I understand it even if I have never
+seen it before.
+
+\mypar{Fast Fourier Transforms}
+Explain the algorithm you use.
+
+\mypar{Cost Analysis}
+First define you cost measure (what you count) and then compute the
+cost. Ideally precisely, at least asymptotically. In the latter case you will need to instrument your code to count
+the operations so you can create a performance plot.
+
+Also state what is
+known about the complexity (asymptotic usually) 
+about your problem (including citations).
+
+Don't talk about "the complexity of the algorithm.'' It's incorrect,
+remember (Lecture 2)?
+
+
+\section{Your Proposed Method}\label{sec:yourmethod}
+
+Now comes the ``beef'' of the paper, where you explain what you
+did. Again, organize it in paragraphs with titles. As in every section
+you start with a very brief overview of the section.
+
+For this class, explain all the optimizations you performed. This mean, you first very briefly
+explain the baseline implementation, then go through locality and other optimizations, and finally SSE (every project will be slightly different of course). Show or mention relevant analysis or assumptions. A few examples: 1) Profiling may lead you to optimize one part first; 2) bandwidth plus data transfer analysis may show that it is memory bound; 3) it may be too hard to implement the algorithm in full generality: make assumptions and state them (e.g., we assume $n$ is divisible by 4; or, we consider only one type of input image); 4) explain how certain data accesses have poor locality. Generally, any type of analysis adds value to your work.
+
+As important as the final results is to show that you took a structured, organized approach to the optimization and that you explain why you did what you did.
+
+Mention and cite any external resources including library or other code.
+
+Good visuals or even brief code snippets to illustrate what you did are good. Pasting large amounts of code to fill the space is not good.
+
+\section{Experimental Results}\label{sec:exp}
+
+Here you evaluate your work using experiments. You start again with a
+very short summary of the section. The typical structure follows.
+
+\mypar{Experimental setup} Specify the platform (processor, frequency, cache sizes)
+as well as the compiler, version, and flags used. I strongly recommend that you play with optimization flags and consider also icc for additional potential speedup.
+
+Then explain what input you used and what range of sizes. The idea is to give enough information so the experiments are reproducible by somebody else on his or her code.
+
+\mypar{Results}
+Next divide the experiments into classes, one paragraph for each. In the simplest case you have one plot that has the size on the x-axis and the performance on the y-axis. The plot will contain several lines, one for each relevant code version. Discuss the plot and extract the overall performance gain from baseline to best code. Also state the percentage of peak performance for the best code. Note that the peak may change depending on the situation. For example, if you only do additions it would be 12 Gflop/s
+on one core with 3 Ghz and SSE and single precision floating point.
+
+Do not put two performance lines into the same plot if the operations count changed significantly (that's apples and oranges). In that case first perform the optimizations that reduce op count and report the runtime gain in a plot. Then continue to optimize the best version and show performance plots.
+
+{\bf You should}
+\begin{itemize}
+\item Follow the guide to benchmarking presented in class, in particular
+\item very readable, attractive plots (do 1 column, not 2 column plots
+for this class), proper readable font size. An example is below (of course you can have a different style),
+\item every plot answers a question, which you pose and extract the
+answer from the plot in its discussion
+\end{itemize}
+Every plot should be discussed (what does it show, which statements do
+you extract).
+
+\section{Conclusions}
+
+Here you need to briefly summarize what you did and why this is
+important. {\em Do not take the abstract} and put it in the past
+tense. Remember, now the reader has (hopefully) read the paper, so it
+is a very different situation from the abstract. Try to highlight
+important results and say the things you really want to get across
+(e.g., the results show that we are within 2x of the optimal performance ... 
+Even though we only considered the DFT, our optimization
+techniques should be also applicable ....) You can also formulate next
+steps if you want. Be brief.
+
+\section{Further comments}
+
+Here we provide some further tips.
+
+\mypar{Further general guidelines}
+
+\begin{itemize}
+\item For short papers, to save space, I use paragraph titles instead of
+subsections, as shown in the introduction.
+
+\item It is generally a good idea to break sections into such smaller
+units for readability and since it helps you to (visually) structure the story.
+
+\item The above section titles should be adapted to more precisely
+reflect what you do.
+
+\item Each section should be started with a very
+short summary of what the reader can expect in this section. Nothing
+more awkward as when the story starts and one does not know what the
+direction is or the goal.
+
+\item Make sure you define every acronym you use, no matter how
+convinced you are the reader knows it.
+
+\item Always spell-check before you submit (to me in this case).
+
+\item Be picky. When writing a paper you should always strive for very
+high quality. Many people may read it and the quality makes a big difference.
+In this class, the quality is part of the grade.
+
+\item Books helping you to write better: \cite{Higham:98} and \cite{Strunk:00}.
+
+\item Conversion to pdf (latex users only): 
+
+dvips -o conference.ps -t letter -Ppdf -G0 conference.dvi
+
+and then
+
+ps2pdf conference.ps
+\end{itemize}
+
+\mypar{Graphics} For plots that are not images {\em never} generate (even as intermediate step)
+jpeg, gif, bmp, tif. Use eps, which means encapsulate postscript, os pdf. This way it is
+scalable since it is a vector graphic description of your graph. E.g.,
+from Matlab, you can export to eps or pdf.
+
+Here is an example of how to get a plot into latex
+(Fig.~\ref{fftperf}). Note that the text should not be any smaller than shown.
+
+\begin{figure}\centering
+  \includegraphics[scale=0.33]{dft-performance.eps}
+  \caption{Performance of four single precision implementations of the
+  discrete Fourier transform. The operations count is roughly the
+  same. {\em The labels in this plot are too small.}\label{fftperf}}
+\end{figure}
+
+
+
+% References should be produced using the bibtex program from suitable
+% BiBTeX files (here: bibl_conf). The IEEEbib.bst bibliography
+% style file from IEEE produces unsorted bibliography list.
+% -------------------------------------------------------------------------
+\bibliographystyle{IEEEbib}
+\bibliography{bibl_conf}
+
+\end{document}
+
