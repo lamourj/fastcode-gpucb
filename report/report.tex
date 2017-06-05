@@ -5,24 +5,26 @@
 
 \documentclass[letterpaper]{article}
 \usepackage{spconf,amsmath,amssymb,graphicx}
+\graphicspath{{./plots/}}
+\usepackage[linesnumbered,ruled]{algorithm2e}
 
 % Example definitions.
 % --------------------
 % nice symbols for real and complex numbers
 \newcommand{\R}[0]{\mathbb{R}}
 \newcommand{\C}[0]{\mathbb{C}}
+\newcommand{\argmax}[1]{\underset{#1}{\operatorname{arg}\,\operatorname{max}}\;}
 
 % bold paragraph titles
 \newcommand{\mypar}[1]{{\bf #1.}}
 
 % Title.
 % ------
-\title{Fast GP UCB implementation}
+\title{Fast Gaussian Process Upper Confidence Bound implementation}
 %
 % Single address.
 % ---------------
-\name{Markus P\"uschel\thanks{The author thanks Jelena Kovacevic. This paper
-is a modified version of the template she used in her class.}} 
+\name{Daan Nilis, Linus Handschin, Julien Lamour} 
 \address{Department of Computer Science\\ ETH Z\"urich\\Z\"urich, Switzerland}
 
 % For example:
@@ -51,9 +53,6 @@ is a modified version of the template she used in her class.}}
 \maketitle
 %
 
-The hard page limit is 6 pages in this style. Do not reduce font size
-or use other tricks to squeeze. This pdf is formatted in the American letter format, so may look a bit strange when printed out.
-
 \begin{abstract}
 Describe in concise words what you do, why you do it (not necessarily
 in this order), and the main result.  The abstract has to be
@@ -63,49 +62,60 @@ should write the abstract last.
 
 \section{Introduction}\label{sec:intro}
 
-Do not start the introduction with the abstract or a slightly modified
-version. It follows a possible structure of the introduction. 
-Note that the structure can be modified, but the
-content should be the same. Introduction and abstract should fill at most the first page, better less.
+In this section, we motivate our work and describe the references we used as starting points.
 
-\mypar{Motivation} The first task is to motivate what you do.  You can
-start general and zoom in one the specific problem you consider.  In
-the process you should have explained to the reader: what you are doing,
-why you are doing, why it is important (order is usually reversed).
+\mypar{Motivation} Many applications require the extraction of the maximum of an unknown function, usually expensive to sample. Advertiser systems, that are aiming to maximize the click-through rate, is such an example. In a more basic scenario, one could try to find the location of the highest temperature in a building by sequentially activating as few sensors as possible in the building.
 
-For example, if my result is the fastest DFT implementation ever, one
-could roughly go as follows. First explain why the DFT is important
-(used everywhere with a few examples) and why performance matters (large datasets,
-realtime). Then explain that fast implementations are very hard and
-expensive to get (memory hierarchy, vector, parallel). 
+Performance matters here for several reasons. In many application, the time span between the moment the sampling result is known and the moment the decision which point to sample next has to be sampled is to be minimized. Moreover, the search space might be very large, making that first constraint harder to fulfill. The example of the advertiser system is a good illustration of these two reasons, where one desires very short delay between the sampling of the function (a specific add was displayed to a user, we observe whether he clicked it or not), and deciding the next point to sample (which add to display to the next user) and can have a very extensive search space (many adds and users to choose from).
 
-Now you state what you do in this paper. In our example: 
-presenting a DFT implementation that is
-faster for some sizes than all the other ones.
+Even if the algorithm runs in an iterative way by repeating an operation over the whole grid after each sampling, the structure of this operation evolves with each iteration, making it slightly harder to optimize. Moreover, the GP-UCB algorithm in inherently sequential in its nature, which limits the number of optimizations that can be done.
 
-\mypar{Related work} Next, you have to give a brief overview of
-related work. For a paper like this, anywhere between 2 and 8
-references. Briefly explain what they do. In the end contrast to what
-you do to make now precisely clear what your contribution is.
+We are here presenting a vectorized implementation for the 2D scenario (search space and function in $\mathbb{R}^2$) that is faster than ?? (any online-findable code?) with a fixed kernel.
 
-\section{Background: Whatever the Background is}\label{sec:background}
+\mypar{Related work} The implementation was based on \cite{Krause:09} which describes the GP-UCB algorithm in more details and provides its pseudocode, and \cite{rasmussen2006gaussian} which provides the pseudocode to perform a Bayesian update.
 
-Give a short, self-contained summary of necessary
-background information. For example, assume you present an
-implementation of FFT algorithms. You could organize into DFT
-definition, FFTs considered, and cost analysis. The goal of the
-background section is to make the paper self-contained for an audience
-as large as possible. As in every section
-you start with a very brief overview of the section. Here it could be as follows: In this section 
-we formally define the discrete Fourier transform, introduce the algorithms we use
-and perform a cost analysis.
+\section{Background: the GP-UCB algorithm}\label{sec:background}
 
-\mypar{Discrete Fourier Transform}
-Precisely define the transform so I understand it even if I have never
-seen it before.
+In this section, we define the GP-UCB algorithm and perform a cost analysis. \textbf{TODO: do we want to add formal definition of UCB ?}
 
-\mypar{Fast Fourier Transforms}
-Explain the algorithm you use.
+\mypar{Radial Basis Function (RBF) kernel}
+The RBF kernel on two samples $\mathbf{x}$ and $\mathbf{x'}$, represented as feature vectors in some input space, is defined as:
+\begin{equation*}
+    K(\mathbf{x}, \mathbf{x'}) = \exp\left(-\frac{\lVert \mathbf{x} - \mathbf{x'} \rVert}{2\sigma^2}\right)
+\end{equation*}
+
+\mypar{The GP-UCB algorithm}
+Even if this is not necessary for the GP-UCB implementation, we fixed the kernel $k$ to be the RBF kernel in our implementation. The $\beta$ parameter is chosen by the user and expresses the trade off between exploration (points where uncertainty is high are sampled) and exploitation (points where the function is known to be relatively high are sampled) that the user desires to make. The Bayesian update mentioned in Algorithm~\ref{alg:gpucb} is detailed in Algorithm~\ref{alg:bayesianupdate}.
+\begin{algorithm}
+    \label{alg:gpucb}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}    
+    \Input{Input space $D$; GP Prior $\mu_0 = 0$, $\sigma_0$, $k$, $\beta$}
+    \Output{$\mu_t$ and $\sigma_t$, the estimations for the mean and variance at each iteration.}
+    \For{$t=1,2,...$}
+        {
+            Choose $\mathbf{x_t} = \argmax{\mathbf{x}\in D} \mu_{t-1}(\mathbf{x}) + \sqrt{\beta_t}\sigma_{t-1}(\mathbf{x})$\\
+            Sample $y_t=f(\mathbf{x_t}) + \epsilon_t$\\
+            Perform Bayesian update to obtain $\mu_t$ and $\sigma_t$
+        }
+    \caption{The GP-UCB algorithm.}
+\end{algorithm}
+
+\begin{algorithm}
+    \label{alg:bayesianupdate}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}    
+    \Input{$X$ (inputs), $\mathbf{y}$ (targets), $k$ (covariance function), $\sigma_n^2$ (noise level), $\mathbf{x_*}$ (test input)}
+    \Output{$\bar{f_*}$ (mean), $\mathbb{V}[f_*]$ (variance)}
+    $L := \textnormal{cholesky}(K+\sigma^2_nI)$\\
+    $\mathbf{\alpha}:=L^T\backslash(L\backslash\mathbf{y})$\\
+    $\bar{f_*}:=\mathbf{k_*}^T\mathbf{\alpha}$\\
+    $\mathbf{v}:=L\backslash\mathbf{k_*}$\\
+    $\mathbb{V}[f_*]:=k(\mathbf{x_*}, \mathbf{x_*})-\mathbf{v}^T\mathbf{v}$\\
+    \Return {$\bar{f_*}, \mathbb{V}[f_*]$}
+    \caption{Predictions for Gaussian process regression.}
+\end{algorithm}
+
 
 \mypar{Cost Analysis}
 First define you cost measure (what you count) and then compute the
@@ -140,8 +150,7 @@ Good visuals or even brief code snippets to illustrate what you did are good. Pa
 Here you evaluate your work using experiments. You start again with a
 very short summary of the section. The typical structure follows.
 
-\mypar{Experimental setup} Specify the platform (processor, frequency, cache sizes)
-as well as the compiler, version, and flags used. I strongly recommend that you play with optimization flags and consider also icc for additional potential speedup.
+\mypar{Experimental setup} For the following measurements, we have been using the machines available in the CAB computer labs, namely: Intel core i7 (Skylake) @3.4GHz, L1: 32 KB, L2: 256 KB, L3: 8 MB. GCC 4.8.5 was used for compilation with the flags -O3 and -fno-tree-vectorize.
 
 Then explain what input you used and what range of sizes. The idea is to give enough information so the experiments are reproducible by somebody else on his or her code.
 
@@ -203,8 +212,6 @@ convinced you are the reader knows it.
 \item Be picky. When writing a paper you should always strive for very
 high quality. Many people may read it and the quality makes a big difference.
 In this class, the quality is part of the grade.
-
-\item Books helping you to write better: \cite{Higham:98} and \cite{Strunk:00}.
 
 \item Conversion to pdf (latex users only): 
 
