@@ -84,7 +84,7 @@ The RBF kernel on two samples $\mathbf{x}$ and $\mathbf{x'}$, represented as fea
     K(\mathbf{x}, \mathbf{x'}) = \exp\left(-\frac{\lVert \mathbf{x} - \mathbf{x'} \rVert}{2\sigma^2}\right)
 \end{equation*}
 
-\mypar{The GP-UCB algorithm}
+\mypar.{GP-UCB algorithm}
 Even if this is not necessary for the GP-UCB implementation, we fixed the kernel $k$ to be the RBF kernel in our implementation. The $\beta$ parameter is chosen by the user and expresses the trade off between exploration (points where uncertainty is high are sampled) and exploitation (points where the function is known to be relatively high are sampled) that the user desires to make. The Bayesian update mentioned in Algorithm~\ref{alg:gpucb} is detailed in Algorithm~\ref{alg:bayesianupdate}.
 \begin{algorithm}
     \label{alg:gpucb}
@@ -98,7 +98,7 @@ Even if this is not necessary for the GP-UCB implementation, we fixed the kernel
             Sample $y_t=f(\mathbf{x_t}) + \epsilon_t$\\
             Perform Bayesian update to obtain $\mu_t$ and $\sigma_t$
         }
-    \caption{The GP-UCB algorithm.}
+    \caption{The GP-UCB algorithm. \cite{Krause:09}}
 \end{algorithm}
 
 \begin{algorithm}
@@ -113,7 +113,7 @@ Even if this is not necessary for the GP-UCB implementation, we fixed the kernel
     $\mathbf{v}:=L\backslash\mathbf{k_*}$\\
     $\mathbb{V}[f_*]:=k(\mathbf{x_*}, \mathbf{x_*})-\mathbf{v}^T\mathbf{v}$\\
     \Return {$\bar{f_*}, \mathbb{V}[f_*]$}
-    \caption{Predictions for Gaussian process regression.}
+    \caption{Predictions for Gaussian process regression. \cite{rasmussen2006gaussian}}
 \end{algorithm}
 
 
@@ -121,6 +121,24 @@ Even if this is not necessary for the GP-UCB implementation, we fixed the kernel
 First define you cost measure (what you count) and then compute the
 cost. Ideally precisely, at least asymptotically. In the latter case you will need to instrument your code to count
 the operations so you can create a performance plot.
+The cost measure is defined in the following way:
+\begin{align*}
+    &C(N,\mathcal{I})\\
+    &=C_{add}(N,\mathcal{I}) + C_{mul}(N,\mathcal{I}) + C_{div}(N,\mathcal{I})+C_{exp}(N,\mathcal{I})\\
+    &=n_{add}(N,\mathcal{I}) + n_{mul}(N,\mathcal{I}) + n_{div}(N,\mathcal{I}) + 20*n_{exp}(N,\mathcal{I})
+\end{align*}
+where:
+\begin{itemize}
+    \item The search grid contains $N^2$ points.
+    \item $\mathcal{I}$ is the number of iterations performed.
+    \item $n_{flop}(N,\mathcal{I})$ is the number of time the specific $flop$ is executed for given $N$ and $\mathcal{I}$.
+\end{itemize}
+
+We instrumented the code in order to have the exact flops count, but the asymptotic measure is the following:
+\begin{equation*}
+    W(N, \mathcal{I}) = N^2*\left(\sum_{i=1}^\mathcal{I}(i^2 + i) + \mathcal{I} * k\right) + O(\mathcal{I}^3)
+\end{equation*}
+
 
 Also state what is
 known about the complexity (asymptotic usually) 
@@ -144,6 +162,23 @@ As important as the final results is to show that you took a structured, organiz
 Mention and cite any external resources including library or other code.
 
 Good visuals or even brief code snippets to illustrate what you did are good. Pasting large amounts of code to fill the space is not good.
+
+We implemented the baseline ourselves, using C code without trying to do any optimization at first, as if we wouldn't have taken the class.
+
+\mypar{Operational intensity} The number of operations $W(N, \mathcal{I})$ was detailed in the previous operation. Since the only element that has to be loaded is the search grid, containing $2 * 4 * N^2$ points in the 2D scenario, the operational intensity is the following:
+\begin{align*}
+    I(N, \mathcal{I}) &= \frac{W(N, \mathcal{I})}{Q(N, \mathcal{I})} \\
+    &= \frac{N^2*\sum_{i=1}^\mathcal{I}(i^2+i)+O(N^2\mathcal{I}+\mathcal{I}^3)}{8*N^2}\\
+    &= \frac{2\mathcal{I}^3}{3}+O\left(\frac{\mathcal{I}^3}{N^2}+\mathcal{I}\right) >> 1
+\end{align*}
+
+\mypar{Incremental Cholesky} ...
+
+\mypar{Triangle solve} ...
+
+\mypar{Matrix-matrix multiplication} ...
+
+\mypar{More} ...
 
 \section{Experimental Results}\label{sec:exp}
 
