@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <float.h>
-#include "gpucb5.h" // CHANGE TO gpucb1.h for newer version
+#include "gpucb8.h" // CHANGE TO gpucb1.h for newer version
 
 int main(int argc, char *argv[]) {
     // Execution variables

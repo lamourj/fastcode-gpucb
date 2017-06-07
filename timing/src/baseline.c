@@ -187,7 +187,7 @@ void incremental_cholesky_bl(float *A, float *A_T, int n1, int n2, int size) {
  *      x: vector to put result in
  *      lower: if one the lower triangle system is solved, else the upper triangle system is solved.
 */
-void cholesky_solve2_bl(int d, int size, float *LU, float *b, float *x, int lower) {
+void cholesky_solve_bl(int d, int size, float *LU, float *b, float *x, int lower) {
     if (lower == 1) {
         for (int i = 0; i < d; ++i) {
             float sum = 0.;
@@ -207,31 +207,6 @@ void cholesky_solve2_bl(int d, int size, float *LU, float *b, float *x, int lowe
     }
 
 }
-
-// Old version.
-void cholesky_solve_bl(int d, float *LU, float *b, float *x) {
-    float y[d];
-    for (int i = 0; i < d; ++i) {
-        float sum = 0.;
-        for (int k = 0; k < i; ++k)sum += LU[i * d + k] * y[k];
-        y[i] = (b[i] - sum) / LU[i * d + i];
-    }
-    for (int i = d - 1; i >= 0; --i) {
-        float sum = 0.;
-        for (int k = i + 1; k < d; ++k)sum += LU[k * d + i] * x[k];
-        x[i] = (y[i] - sum) / LU[i * d + i];
-    }
-}
-
-
-void transpose_bl(float *M, float *M_T, int d, int size) {
-    for (int i = 0; i < d; ++i) {
-        for (int j = 0; j < d; ++j) {
-            M_T[j * size + i] = M[i * size + j];
-        }
-    }
-}
-
 
 void gp_regression_bl(float *X_grid,
                       float *K,
@@ -272,8 +247,8 @@ void gp_regression_bl(float *X_grid,
     float v[t_gp];
 
 
-    cholesky_solve2_bl(t_gp, maxIter, K, T, x, 1);
-    cholesky_solve2_bl(t_gp, maxIter, L_T, x, alpha, 0);
+    cholesky_solve_bl(t_gp, maxIter, K, T, x, 1);
+    cholesky_solve_bl(t_gp, maxIter, L_T, x, alpha, 0);
 
     // 4-6. For all points in grid, compute k*, mu, sigma
 
@@ -300,7 +275,7 @@ void gp_regression_bl(float *X_grid,
             }
 
             mu[i * n + j] = f_star;
-            cholesky_solve2_bl(t_gp, maxIter, K, k_star, v, 1);
+            cholesky_solve_bl(t_gp, maxIter, K, k_star, v, 1);
 
             float variance = 1.0;
             for (int k = 0; k < t_gp; k++) {

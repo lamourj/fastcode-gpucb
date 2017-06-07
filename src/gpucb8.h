@@ -52,12 +52,7 @@ void incremental_cholesky(float *A, float *A_T, int n1, int n2, int size);
 
 void cholesky_solve2(int d, int size, float *LU, float *b, float *x, int lower);
 
-void mmm(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
-
 void mmm_vect(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
-
-void solve_triangle(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
-                    int maxIter, float *sums, float *K, float *v);
 
 void
 solve_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll, int n,
@@ -67,21 +62,19 @@ void
 solve_small_triangle_vect(float *X_grid, int *X, float *mu, float *sigma, float *alpha, int i, int jj, int kk, int ll,
                           int n, int maxIter, int k_max, float *sums, float *K, float *v);
 
-void cholesky_solve2_opt(int d, int size, float *LU, float *b, float *x, int lower);
-
-void gp_regression_opt(float *X_grid,
-                       float *K,
-                       float *L_T,
-                       int *X,
-                       float *T,
-                       int t,
-                       int maxIter,
-                       float *mu,
-                       float *sigma,
-                       bool *sampled,
-                       float beta,
-                       int n,
-                       int *maxIJ);
+void gp_regression(float *X_grid,
+                   float *K,
+                   float *L_T,
+                   int *X,
+                   float *T,
+                   int t,
+                   int maxIter,
+                   float *mu,
+                   float *sigma,
+                   bool *sampled,
+                   float beta,
+                   int n,
+                   int *maxIJ);
 
 void dispatch_mmm_vect_size4(int jj, int kk, int ll, int maxIter, int k_max, float *sums, float *K, float *v);
 

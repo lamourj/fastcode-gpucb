@@ -25,18 +25,18 @@ int N_bl;
 float function_bl(float x, float y);
 
 void learn_bl(float *X_grid,
-                    float *K,
-                    float *L_T,
-                    bool *sampled,
-                    int *X,
-                    float *T,
-                    int t,
-                    int maxIter,
-                    float *mu,
-                    float *sigma,
-                    float(*kernel)(float *, float *, float *, float *),
-                    const float beta,
-                    int n);
+              float *K,
+              float *L_T,
+              bool *sampled,
+              int *X,
+              float *T,
+              int t,
+              int maxIter,
+              float *mu,
+              float *sigma,
+              float(*kernel)(float *, float *, float *, float *),
+              const float beta,
+              int n);
 
 float kernel2_bl(float *x1, float *y1, float *x2, float *y2);
 
@@ -54,22 +54,18 @@ void cholesky_bl(float *A, int n, int size);
 
 void incremental_cholesky_bl(float *A, float *A_T, int n1, int n2, int size);
 
-void cholesky_solve2_bl(int d, int size, float *LU, float *b, float *x, int lower);
-
-void cholesky_solve_bl(int d, float *LU, float *b, float *x);
-
-void transpose_bl(float *M, float *M_T, int d, int size);
+void cholesky_solve_bl(int d, int size, float *LU, float *b, float *x, int lower);
 
 void gp_regression_bl(float *X_grid,
-                            float *K,
-                            float *L_T,
-                            int *X,
-                            float *T,
-                            int t,
-                            int maxIter,
-                            float   (*kernel)(float *, float *, float *, float *),
-                            float *mu,
-                            float *sigma,
-                            int n);
+                      float *K,
+                      float *L_T,
+                      int *X,
+                      float *T,
+                      int t,
+                      int maxIter,
+                      float   (*kernel)(float *, float *, float *, float *),
+                      float *mu,
+                      float *sigma,
+                      int n);
 
 #endif //FASTCODE_BASELINE_H
