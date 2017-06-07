@@ -20,7 +20,7 @@
 
 % Title.
 % ------
-\title{Fast Gaussian Process Upper Confidence Bound implementation}
+\title{Fast Gaussian Process Upper Confidence Bound (GP-UCB) implementation}
 %
 % Single address.
 % ---------------
@@ -68,15 +68,15 @@ In this section, we motivate our work and describe the references we used as sta
 
 Performance matters here for several reasons. In many application, the time span between the moment the sampling result is known and the moment the decision which point to sample next has to be sampled is to be minimized. Moreover, the search space might be very large, making that first constraint harder to fulfill. The example of the advertiser system is a good illustration of these two reasons, where one desires very short delay between the sampling of the function (a specific add was displayed to a user, we observe whether he clicked it or not), and deciding the next point to sample (which add to display to the next user) and can have a very extensive search space (many adds and users to choose from).
 
-Even if the algorithm runs in an iterative way by repeating an operation over the whole grid after each sampling, the structure of this operation evolves with each iteration, making it slightly harder to optimize. Moreover, the GP-UCB algorithm in inherently sequential in its nature, which limits the number of optimizations that can be done.
+Even if the GP-UCB algorithm repetedly performs several similar steps in each iteration, it is still inherently sequential, since the result of one iteration has to be known in order to proceed to the next one. Fast implementations require thinking on the way code has to be vectorized since part of the working set is growing at each iteration.
 
-We are here presenting a vectorized implementation for the 2D scenario (search space and function in $\mathbb{R}^2$) that is faster than ?? (any online-findable code?) with a fixed kernel.
+We are presenting here a vectorized implementation of the GP-UCB algorithm for the 2D scenario (function and search grid in $\mathbb{R}$) with a fixed kernel.
 
 \mypar{Related work} The implementation was based on \cite{Krause:09} which describes the GP-UCB algorithm in more details and provides its pseudocode, and \cite{rasmussen2006gaussian} which provides the pseudocode to perform a Bayesian update.
 
 \section{Background: the GP-UCB algorithm}\label{sec:background}
 
-In this section, we define the GP-UCB algorithm and perform a cost analysis. \textbf{TODO: do we want to add formal definition of UCB ?}
+In this section, we define the GP-UCB algorithm and perform a cost analysis. \textbf{TODO: add explanation of Upper Confidence Bound: Linus}.
 
 \mypar{Radial Basis Function (RBF) kernel}
 The RBF kernel on two samples $\mathbf{x}$ and $\mathbf{x'}$, represented as feature vectors in some input space, is defined as:
@@ -84,8 +84,8 @@ The RBF kernel on two samples $\mathbf{x}$ and $\mathbf{x'}$, represented as fea
     K(\mathbf{x}, \mathbf{x'}) = \exp\left(-\frac{\lVert \mathbf{x} - \mathbf{x'} \rVert}{2\sigma^2}\right)
 \end{equation*}
 
-\mypar.{GP-UCB algorithm}
-Even if this is not necessary for the GP-UCB implementation, we fixed the kernel $k$ to be the RBF kernel in our implementation. The $\beta$ parameter is chosen by the user and expresses the trade off between exploration (points where uncertainty is high are sampled) and exploitation (points where the function is known to be relatively high are sampled) that the user desires to make. The Bayesian update mentioned in Algorithm~\ref{alg:gpucb} is detailed in Algorithm~\ref{alg:bayesianupdate}.
+\mypar{GP-UCB algorithm}
+We fixed the kernel $k$ to be the RBF kernel in our implementation in order to perform optimization on its computation as well as for having a stricly defined cost measure to deduce performance. The $\beta$ parameter is chosen by the user and expresses the trade off between exploration (points where uncertainty is high are sampled) and exploitation (points where the function is known to be relatively high are sampled) that the user desires to make. The Bayesian update mentioned in Algorithm~\ref{alg:gpucb} is detailed in Algorithm~\ref{alg:bayesianupdate}.
 \begin{algorithm}
     \label{alg:gpucb}
     \SetKwInOut{Input}{Input}
@@ -101,6 +101,7 @@ Even if this is not necessary for the GP-UCB implementation, we fixed the kernel
     \caption{The GP-UCB algorithm. \cite{Krause:09}}
 \end{algorithm}
 
+\mypar{Gaussian Process} The function $f$ that we aim to estimate is modeled as a Gaussian Process (GP), which is a collection of dependent random variables, one for each $\mathbf{x} \in D$. A $GP(\mu(\mathbf{x}), k(\mathbf{x}, \mathbf{x'}))$ is specified by its mean function $\mu(\mathbf{x})=\mathbb{E}[f(\mathbf{x})]$ and covariance (or kernel) function $k(\mathbf{x}, \mathbf{x'})= \mathbb{E}[(f(x)-\mu(\mathbf{x}))(f(x')-\mu(\mathbf{x'}))]$. For GP not conditioned on data (as it is the case here), we assume $\mu \equiv 0$. Moreover, $k(\mathbf{x}, \mathbf{x}), \mathbf{x} \in D$ is restricted to be less or equal to 1, which is fulfilled by the RBF kernel.
 \begin{algorithm}
     \label{alg:bayesianupdate}
     \SetKwInOut{Input}{Input}
@@ -118,20 +119,19 @@ Even if this is not necessary for the GP-UCB implementation, we fixed the kernel
 
 
 \mypar{Cost Analysis}
-First define you cost measure (what you count) and then compute the
-cost. Ideally precisely, at least asymptotically. In the latter case you will need to instrument your code to count
-the operations so you can create a performance plot.
+Based on our experiments, we decided to use single precision floating point numbers since it was sufficient to retrieve the maximum point of the function with the RBF kernel and allowed higher performance.
 The cost measure is defined in the following way:
 \begin{align*}
     &C(N,\mathcal{I})\\
     &=C_{add}(N,\mathcal{I}) + C_{mul}(N,\mathcal{I}) + C_{div}(N,\mathcal{I})+C_{exp}(N,\mathcal{I})\\
-    &=n_{add}(N,\mathcal{I}) + n_{mul}(N,\mathcal{I}) + n_{div}(N,\mathcal{I}) + 20*n_{exp}(N,\mathcal{I})
+    &=n_{add}(N,\mathcal{I}) + n_{mul}(N,\mathcal{I}) + n_{div}(N,\mathcal{I}) + 20n_{exp}(N,\mathcal{I})
 \end{align*}
 where:
 \begin{itemize}
     \item The search grid contains $N^2$ points.
     \item $\mathcal{I}$ is the number of iterations performed.
-    \item $n_{flop}(N,\mathcal{I})$ is the number of time the specific $flop$ is executed for given $N$ and $\mathcal{I}$.
+    \item $n_{flop}(N,\mathcal{I})$ is the number of time the specific single precision $flop$ is executed for given $N$ and $\mathcal{I}$.
+    \item The divisions and exponentials come from the RBF kernel, and the cost would change with the use of another kernel.
 \end{itemize}
 
 We instrumented the code in order to have the exact flops count, but the asymptotic measure is the following:
@@ -139,6 +139,7 @@ We instrumented the code in order to have the exact flops count, but the asympto
     W(N, \mathcal{I}) = N^2*\left(\sum_{i=1}^\mathcal{I}(i^2 + i) + \mathcal{I} * k\right) + O(\mathcal{I}^3)
 \end{equation*}
 
+\textbf{TODO: High-level explanation of where the numbers come from.}
 
 Also state what is
 known about the complexity (asymptotic usually) 
@@ -150,20 +151,17 @@ remember (Lecture 2)?
 
 \section{Your Proposed Method}\label{sec:yourmethod}
 
-Now comes the ``beef'' of the paper, where you explain what you
-did. Again, organize it in paragraphs with titles. As in every section
-you start with a very brief overview of the section.
+In this section, we ...
 
-For this class, explain all the optimizations you performed. This mean, you first very briefly
-explain the baseline implementation, then go through locality and other optimizations, and finally SSE (every project will be slightly different of course). Show or mention relevant analysis or assumptions. A few examples: 1) Profiling may lead you to optimize one part first; 2) bandwidth plus data transfer analysis may show that it is memory bound; 3) it may be too hard to implement the algorithm in full generality: make assumptions and state them (e.g., we assume $n$ is divisible by 4; or, we consider only one type of input image); 4) explain how certain data accesses have poor locality. Generally, any type of analysis adds value to your work.
+We assumed $N$ to be divisible by 8. The reason for that is that 8 floating point numbers fit in a AVX vector and this assumption therefore simplifies the vectorization.
 
-As important as the final results is to show that you took a structured, organized approach to the optimization and that you explain why you did what you did.
-
-Mention and cite any external resources including library or other code.
-
-Good visuals or even brief code snippets to illustrate what you did are good. Pasting large amounts of code to fill the space is not good.
-
-We implemented the baseline ourselves, using C code without trying to do any optimization at first, as if we wouldn't have taken the class.
+\mypar{Baseline} We implemented the baseline ourselves, using C code without trying to do any optimization at first, as if we wouldn't have taken the class. The high-level overview of the baseline (valid for the optimized version as well) is the following:
+\begin{enumerate}
+    \item \texttt{run} performs a learning step for each iteration: \texttt{for i in 1..$\mathcal{I}$: learn}.
+    \item \texttt{learn} samples the argmax point (line 2 of Algorithm~\ref{alg:gpucb}) depending on the current values of $\mu$, the uncertainty $\sigma$ and the chosen $\beta$ value and calls \texttt{gp regression} after each sampling.
+    \item \texttt{gp regression} performs a Bayesian update (as described in Algorithm~\ref{alg:bayesianupdate}) for each point in the search grid in order to obtain the updated $\mu$ and $\sigma$ with the additional information brought the latest sampled point.
+    \item Several minor helper functions were declared to improve readability. \texttt{incremental cholesky} and \texttt{cholesky solve} are examples of these.
+\end{enumerate}
 
 \mypar{Operational intensity} The number of operations $W(N, \mathcal{I})$ was detailed in the previous operation. Since the only element that has to be loaded is the search grid, containing $2 * 4 * N^2$ points in the 2D scenario, the operational intensity is the following:
 \begin{align*}
@@ -172,13 +170,15 @@ We implemented the baseline ourselves, using C code without trying to do any opt
     &= \frac{2\mathcal{I}^3}{3}+O\left(\frac{\mathcal{I}^3}{N^2}+\mathcal{I}\right) >> 1
 \end{align*}
 
-\mypar{Incremental Cholesky} ...
+As explained earlier in the Cost Analysis paragraph, the bottleneck is triangle solve... explain more
 
-\mypar{Triangle solve} ...
+\mypar{Incremental Cholesky} Daan
 
-\mypar{Matrix-matrix multiplication} ...
+\mypar{Triangle solve} Daan
 
-\mypar{More} ...
+\mypar{8x8 matrix-matrix multiplication (MMM)} As explained in the previous paragraph, we require high-performance 8x8 MMM since it is part of the bottleneck routine. We implemented it in a vectorized fashion using fused multiply-add (FMA). The performance reached is discussed in Section~\ref{sec:exp}.
+
+\mypar{Fuse Bayesian update and argmax} In a naive implementation, one would first perform the Bayesian update for all points on the grid in order to obtain the new values of $\mu$ and $\sigma$, and then go through every entry a second time in order to identify the maximum value of $\mu(\mathbf{x})+\sqrt{\beta}\sigma(\mathbf{x})$. This argmax step can actually be done during the update itself by memorizing the highest value, saving an entire pass through $\mu$ and $\sigma$.
 
 \section{Experimental Results}\label{sec:exp}
 
@@ -194,6 +194,12 @@ Next divide the experiments into classes, one paragraph for each. In the simples
 on one core with 3 Ghz and SSE and single precision floating point.
 
 Do not put two performance lines into the same plot if the operations count changed significantly (that's apples and oranges). In that case first perform the optimizations that reduce op count and report the runtime gain in a plot. Then continue to optimize the best version and show performance plots.
+
+\mypar{Incremental Cholesky} Daan
+
+\mypar{Triangle solve} Daan
+
+\mypar{8x8 matrix-matrix multiplication} Performance reached was xxx f/c.
 
 {\bf You should}
 \begin{itemize}
