@@ -1,33 +1,5 @@
 # Project #
-Fast GP-UCB implementation.
+Fast GP-UCB implementation, based on [N. Srinivas and A. Krause, "Gaussian Process Optimization in the Bandit Setting: No Regret and Experimental Design", arXiv:0912.3995, 2009](https://arxiv.org/pdf/0912.3995.pdf).
 
-## Versions ##
-Baseline now has incremental Cholesky.
-0. Baseline without incremental Cholesky
-1. ~~Incremental Cholesky, now baseline~~
-2. ~~First optimization without vectorization, had incoherences: deleted~~
-3. Vectorized search of the maximum value to sample.
-4. Cholesky solver optimized without vect
 
-## 1:1 Meeting May 9th ##
-- ~~Fix kernel (to RBF) -- done~~
-- Neglect function cost -- done?
-- Use floats (update: is it sufficient?)
-- Push sizes (10, 20,... 50 iterations)
-
-Suggestions on how to split the work:
-1. Cholesky incrementing
-2. Solving systems: blocking
-3. Rest
-
-Dependencies might not be too restrictives: optimization might be done by starting some computations before other end.
-
-Use AVX2
-
-## 1:1 Meeting Max 24th: TODOS
-- Matrix for L
-- ~~Full floats~~
-- Blocking: Find right blocking factor (3x3, 4x4)
-- Reduce to MMM
-- Fuse vector computation and max finding
-- Operational intensity: Do more reflexion
+This project was done in the context of the [How to write Fast Numerical Code](http://www.vorlesungsverzeichnis.ethz.ch/Vorlesungsverzeichnis/lerneinheit.view?lerneinheitId=112992&semkez=2017S&ansicht=KATALOGDATEN&lang=en) course taught by Prof. M. Püschel at ETH-Zürich in Spring 2017.
